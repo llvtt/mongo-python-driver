@@ -23,9 +23,8 @@ installed on a connection by calling
    Deprecated.
 """
 
-import six
 import weakref
-
+from bson.py3compat import integer_types, string_types
 
 class CursorManager(object):
     """The default cursor manager.
@@ -49,8 +48,8 @@ class CursorManager(object):
         :Parameters:
           - `cursor_id`: cursor id to close
         """
-        if not isinstance(cursor_id, six.integer_types):
-            raise TypeError("cursor_id must be an instance of (int, long)")
+        if not isinstance(cursor_id, integer_types):
+            raise TypeError("cursor_id must be an integer type")
 
         self.__connection().kill_cursors([cursor_id])
 
@@ -84,8 +83,8 @@ class BatchCursorManager(CursorManager):
         :Parameters:
           - `cursor_id`: cursor id to close
         """
-        if not isinstance(cursor_id, six.integer_types):
-            raise TypeError("cursor_id must be an instance of (int, long)")
+        if not isinstance(cursor_id, integer_types):
+            raise TypeError("cursor_id must be an integer type")
 
         self.__dying_cursors.append(cursor_id)
 

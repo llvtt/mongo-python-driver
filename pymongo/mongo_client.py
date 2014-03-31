@@ -36,14 +36,13 @@ access:
 
 import datetime
 import random
-import six
 import socket
 import struct
 import threading
 import time
 import warnings
 
-from bson.py3compat import b
+from bson.py3compat import b, u, integer_types, string_types
 from pymongo import (auth,
                      common,
                      database,
@@ -231,7 +230,7 @@ class MongoClient(common.BaseObject):
         """
         if host is None:
             host = self.HOST
-        if isinstance(host, six.string_types):
+        if isinstance(host, string_types):
             host = [host]
         if port is None:
             port = self.PORT
@@ -278,7 +277,7 @@ class MongoClient(common.BaseObject):
         event_class = kwargs.pop('_event_class', None)
 
         options = {}
-        for option, value in six.iteritems(kwargs):
+        for option, value in kwargs.items():
             option, value = common.validate(option, value)
             options[option] = value
         options.update(opts)
@@ -302,7 +301,7 @@ class MongoClient(common.BaseObject):
         self.__ssl_cert_reqs = options.get('ssl_cert_reqs', None)
         self.__ssl_ca_certs = options.get('ssl_ca_certs', None)
 
-        ssl_kwarg_keys = [k for k in six.iterkeys(kwargs)
+        ssl_kwarg_keys = [k for k in kwargs.keys()
                           if k.startswith('ssl_')]
         if self.__use_ssl == False and ssl_kwarg_keys:
             raise ConfigurationError("ssl has not been enabled but the "
@@ -376,8 +375,8 @@ class MongoClient(common.BaseObject):
 
             credentials = auth._build_credentials_tuple(mechanism,
                                                         source,
-                                                        six.u(username),
-                                                        six.u(password),
+                                                        u(username),
+                                                        u(password),
                                                         options)
             try:
                 self._cache_credentials(source, credentials, _connect)
@@ -487,7 +486,7 @@ class MongoClient(common.BaseObject):
         """Authenticate using cached database credentials.
         """
         if self.__auth_credentials or sock_info.authset:
-            cached = set(six.itervalues(self.__auth_credentials))
+            cached = set(self.__auth_credentials.values())
 
             authset = sock_info.authset.copy()
 
@@ -1317,7 +1316,7 @@ class MongoClient(common.BaseObject):
         :Parameters:
           - `cursor_id`: id of cursor to close
         """
-        if not isinstance(cursor_id, six.integer_types):
+        if not isinstance(cursor_id, integer_types):
             raise TypeError("cursor_id must be an instance of (int, long)")
 
         self.__cursor_manager.close(cursor_id)
@@ -1362,10 +1361,9 @@ class MongoClient(common.BaseObject):
         if isinstance(name, database.Database):
             name = name.name
 
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name_or_database must be an instance of "
-                            "%s or Database" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name_or_database must be a string type "
+                            "or a Database")
 
         self._purge_index(name)
         self[name].command("dropDatabase")
@@ -1397,14 +1395,10 @@ class MongoClient(common.BaseObject):
 
         .. versionadded:: 1.5
         """
-        if not isinstance(from_name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("from_name must be an instance "
-                            "of one of the following: %s" % string_names)
-        if not isinstance(to_name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("to_name must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(from_name, string_types):
+            raise TypeError("from_name must be a string type")
+        if not isinstance(to_name, string_types):
+            raise TypeError("to_name must be a string type")
 
         database._check_name(to_name)
 

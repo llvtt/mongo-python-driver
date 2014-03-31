@@ -14,12 +14,12 @@
 
 """Database level operations."""
 
-import six
 import warnings
 
 from bson.binary import OLD_UUID_SUBTYPE
 from bson.code import Code
 from bson.dbref import DBRef
+from bson.py3compat import string_types, u
 from bson.son import SON
 from pymongo import auth, common, helpers
 from pymongo.collection import Collection
@@ -70,15 +70,13 @@ class Database(common.BaseObject):
                              uuidrepresentation=connection.uuid_subtype,
                              **connection.write_concern)
 
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name must be a string type")
 
         if name != '$external':
             _check_name(name)
 
-        self.__name = six.u(name)
+        self.__name = u(name)
         self.__connection = connection
 
         self.__incoming_manipulators = []
@@ -279,7 +277,7 @@ class Database(common.BaseObject):
         """Internal command helper.
         """
 
-        if isinstance(command, six.string_types):
+        if isinstance(command, string_types):
             command = SON([(command, value)])
 
         command_name = next(command.keys()).lower()
@@ -462,14 +460,12 @@ class Database(common.BaseObject):
         if isinstance(name, Collection):
             name = name.name
 
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name_or_collection must be an instance of "
-                            "%s or Collection" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name_or_collection must be a string type")
 
         self.__connection._purge_index(self.__name, name)
 
-        self.command("drop", six.u(name), allowable_errors=["ns not found"])
+        self.command("drop", u(name), allowable_errors=["ns not found"])
 
     def validate_collection(self, name_or_collection,
                             scandata=False, full=False):
@@ -502,12 +498,10 @@ class Database(common.BaseObject):
         if isinstance(name, Collection):
             name = name.name
 
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name_or_collection must be an instance of "
-                            "%s or Collection" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name_or_collection must be a string type")
 
-        result = self.command("validate", six.u(name),
+        result = self.command("validate", u(name),
                               scandata=scandata, full=full)
 
         valid = True
@@ -518,7 +512,7 @@ class Database(common.BaseObject):
                 raise CollectionInvalid("%s invalid: %s" % (name, info))
         # Sharded results
         elif "raw" in result:
-            for _, res in six.iteritems(result["raw"]):
+            for _, res in result["raw"].items():
                 if "result" in res:
                     info = res["result"]
                     if (info.find("exception") != -1 or
@@ -748,15 +742,11 @@ class Database(common.BaseObject):
 
         .. versionadded:: 1.4
         """
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name must be a string type")
         if password is not None:
-            if not isinstance(password, six.string_types):
-                string_names = ', '.join(s.__name__ for s in six.string_types)
-                raise TypeError("password must be an instance "
-                                "of %s or None" % string_names)
+            if not isinstance(password, string_types):
+                raise TypeError("password must be a string type")
             if len(password) == 0:
                 raise ValueError("password can't be empty")
         if read_only is not None:
@@ -855,28 +845,22 @@ class Database(common.BaseObject):
 
         .. mongodoc:: authenticate
         """
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name must be an instance "
-                            "of one of the following: %s" % string_names)
-        if password is not None and not isinstance(password, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("password must be an instance "
-                            "of one of the following: %s" % string_names)
-        if source is not None and not isinstance(source, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("source must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name must be a string type")
+        if password is not None and not isinstance(password, string_types):
+            raise TypeError("password must be a string type")
+        if source is not None and not isinstance(source, string_types):
+            raise TypeError("source must be a string type")
         common.validate_auth_mechanism('mechanism', mechanism)
 
         validated_options = {}
-        for option, value in six.iteritems(kwargs):
+        for option, value in kwargs.items():
             normalized, val = common.validate_auth_option(option, value)
             validated_options[normalized] = val
 
         credentials = auth._build_credentials_tuple(mechanism,
-                                source or self.name, six.u(name),
-                                password and six.u(password) or None,
+                                source or self.name, u(name),
+                                password and u(password) or None,
                                 validated_options)
         self.connection._cache_credentials(self.name, credentials)
         return True

@@ -16,11 +16,14 @@
 
 from __future__ import unicode_literals
 
-import six
 import warnings
 
 from bson.code import Code
 from bson.objectid import ObjectId
+from bson.py3compat import (Iterator,
+                            string_types,
+                            integer_types,
+                            u)
 from bson.son import SON
 from pymongo import (bulk,
                      common,
@@ -46,7 +49,7 @@ def _gen_index_name(keys):
     return "_".join(["%s_%s" % item for item in keys])
 
 
-class Collection(common.BaseObject, six.Iterator):
+class Collection(common.BaseObject, Iterator):
     """A Mongo collection.
     """
 
@@ -98,10 +101,8 @@ class Collection(common.BaseObject, six.Iterator):
             uuidrepresentation=database.uuid_subtype,
             **database.write_concern)
 
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name must be a string type")
 
         if not name or ".." in name:
             raise InvalidName("collection names cannot be empty")
@@ -117,7 +118,7 @@ class Collection(common.BaseObject, six.Iterator):
                               "null character")
 
         self.__database = database
-        self.__name = six.u(name)
+        self.__name = u(name)
         self.__full_name = "%s.%s" % (self.__database.name, self.__name)
         if create or kwargs:
             self.__create(kwargs)
@@ -1023,7 +1024,7 @@ class Collection(common.BaseObject, six.Iterator):
                           DeprecationWarning, stacklevel=2)
 
         # The types supported by datetime.timedelta. 2to3 removes long.
-        number_types = six.integer_types + [float]
+        number_types = integer_types + [float]
         if not isinstance(cache_for, number_types):
             raise TypeError("cache_for must be an integer or float.")
 
@@ -1183,7 +1184,7 @@ class Collection(common.BaseObject, six.Iterator):
         if isinstance(index_or_name, list):
             name = _gen_index_name(index_or_name)
 
-        if not isinstance(name, six.string_types):
+        if not isinstance(name, string_types):
             raise TypeError("index_or_name must be an index name or list")
 
         self.__database.connection._purge_index(self.__database.name,
@@ -1368,7 +1369,7 @@ class Collection(common.BaseObject, six.Iterator):
         """
 
         group = {}
-        if isinstance(key, six.string_types):
+        if isinstance(key, string_types):
             group["$keyf"] = Code(key)
         elif key is not None:
             group = {"key": helpers._fields_list_to_dict(key)}
@@ -1409,10 +1410,8 @@ class Collection(common.BaseObject, six.Iterator):
         .. versionadded:: 1.7
            support for accepting keyword arguments for rename options
         """
-        if not isinstance(new_name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("new_name must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(new_name, string_types):
+            raise TypeError("new_name must be a string type")
 
         if not new_name or ".." in new_name:
             raise InvalidName("collection names cannot be empty")
@@ -1485,10 +1484,8 @@ class Collection(common.BaseObject, six.Iterator):
 
         .. mongodoc:: mapreduce
         """
-        if not isinstance(out, six.string_types) and not isinstance(out, dict):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("'out' must be an instance of "
-                            "one of the following: %s, dict" % string_names)
+        if not isinstance(out, string_types) and not isinstance(out, dict):
+            raise TypeError("'out' must be a string type")
 
         if isinstance(out, dict) and out.get('inline'):
             must_use_master = False

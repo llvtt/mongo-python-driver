@@ -18,8 +18,6 @@ New manipulators should be defined as subclasses of SONManipulator and can be
 installed on a database by calling
 `pymongo.database.Database.add_son_manipulator`."""
 
-import six
-
 from bson.dbref import DBRef
 from bson.objectid import ObjectId
 from bson.son import SON
@@ -150,7 +148,7 @@ class AutoReference(SONManipulator):
             return value
 
         def transform_dict(object):
-            for (key, value) in six.iteritems(object):
+            for (key, value) in object.items():
                 object[key] = transform_value(value)
             return object
 
@@ -170,7 +168,7 @@ class AutoReference(SONManipulator):
             return value
 
         def transform_dict(object):
-            for (key, value) in six.iteritems(object):
+            for (key, value) in object.items():
                 object[key] = transform_value(value)
             return object
 

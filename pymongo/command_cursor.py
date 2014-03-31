@@ -15,13 +15,13 @@
 """CommandCursor class to iterate over command results."""
 
 from collections import deque
-import six
 
+from bson.py3compat import Iterator, integer_types
 from pymongo import helpers, message
 from pymongo.errors import AutoReconnect, CursorNotFound
 
 
-class CommandCursor(object, six.Iterator):
+class CommandCursor(object, Iterator):
     """A cursor / iterator over command cursors.
     """
 
@@ -81,7 +81,7 @@ class CommandCursor(object, six.Iterator):
         :Parameters:
           - `batch_size`: The size of each batch of results requested.
         """
-        if not isinstance(batch_size, six.integer_types):
+        if not isinstance(batch_size, integer_types):
             raise TypeError("batch_size must be an integer")
         if batch_size < 0:
             raise ValueError("batch_size must be >= 0")

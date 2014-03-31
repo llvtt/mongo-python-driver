@@ -14,6 +14,8 @@
 
 """Tools for representing JavaScript code in BSON.
 """
+from bson.py3compat import string_types
+
 
 class Code(str):
     """BSON's JavaScript code type.
@@ -42,9 +44,8 @@ class Code(str):
     _type_marker = 13
 
     def __new__(cls, code, scope=None, **kwargs):
-        if not isinstance(code, basestring):
-            raise TypeError("code must be an "
-                            "instance of %s" % (basestring.__name__,))
+        if not isinstance(code, string_types):
+            raise TypeError("code must be a string type")
 
         self = str.__new__(cls, code)
 

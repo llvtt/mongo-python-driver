@@ -13,7 +13,6 @@
 # permissions and limitations under the License.
 
 import os
-import six
 import socket
 import sys
 import time
@@ -529,7 +528,7 @@ class Pool:
         for sock_info in self.sockets:
             sock_info.close()
 
-        for request_sock in six.itervalues(self._tid_to_sock):
+        for request_sock in self._tid_to_sock.values():
             if request_sock not in (NO_REQUEST, NO_SOCKET_YET):
                 request_sock.close()
 

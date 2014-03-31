@@ -33,7 +33,6 @@ attribute-style access:
 
 import atexit
 import datetime
-import six
 import socket
 import struct
 import threading
@@ -41,7 +40,7 @@ import time
 import warnings
 import weakref
 
-from bson.py3compat import b
+from bson.py3compat import b, u, integer_types, string_types
 from pymongo import (auth,
                      common,
                      database,
@@ -155,7 +154,7 @@ class RSState(object):
         self._error_message = error_message
         self._host_to_member = host_to_member or {}
         self._hosts = frozenset(hosts or [])
-        self._members = frozenset(six.itervalues(self._host_to_member))
+        self._members = frozenset(self._host_to_member.values())
         self._exc = exc
         self._initial = initial
         self._primary_member = self.get(writer)
@@ -246,7 +245,7 @@ class RSState(object):
         # Unlike the other properties, this isn't cached because it isn't used
         # in regular operations.
         return set([
-            host for host, member in six.iteritems(self._host_to_member)
+            host for host, member in self._host_to_member.items()
             if member.is_secondary])
 
     @property
@@ -295,7 +294,7 @@ class RSState(object):
     def __str__(self):
         return '<RSState [%s] writer="%s">' % (
             ', '.join(str(member)
-                      for member in six.itervalues(self._host_to_member)),
+                      for member in self._host_to_member.values()),
             self.writer and '%s:%s' % self.writer or None)
 
 
@@ -624,7 +623,7 @@ class MongoReplicaSetClient(common.BaseObject):
         self.pool_class = kwargs.pop('_pool_class', pool.Pool)
         self.__monitor_class = kwargs.pop('_monitor_class', None)
 
-        for option, value in six.iteritems(kwargs):
+        for option, value in kwargs.items():
             option, value = common.validate(option, value)
             self.__opts[option] = value
         self.__opts.update(options)
@@ -658,8 +657,7 @@ class MongoReplicaSetClient(common.BaseObject):
         self.__ssl_cert_reqs = self.__opts.get('ssl_cert_reqs', None)
         self.__ssl_ca_certs = self.__opts.get('ssl_ca_certs', None)
 
-        ssl_kwarg_keys = [k for k in six.iterkeys(kwargs)
-                          if k.startswith('ssl_')]
+        ssl_kwarg_keys = [k for k in kwargs.keys() if k.startswith('ssl_')]
         if self.__use_ssl is False and ssl_kwarg_keys:
             raise ConfigurationError("ssl has not been enabled but the "
                                      "following ssl parameters have been set: "
@@ -704,8 +702,8 @@ class MongoReplicaSetClient(common.BaseObject):
 
             credentials = auth._build_credentials_tuple(mechanism,
                                                         source,
-                                                        six.u(username),
-                                                        six.u(password),
+                                                        u(username),
+                                                        u(password),
                                                         options)
             try:
                 self._cache_credentials(source, credentials, _connect)
@@ -831,7 +829,7 @@ class MongoReplicaSetClient(common.BaseObject):
         """Authenticate using cached database credentials.
         """
         if self.__auth_credentials or sock_info.authset:
-            cached = set(six.itervalues(self.__auth_credentials))
+            cached = set(self.__auth_credentials.values())
 
             authset = sock_info.authset.copy()
 
@@ -1248,7 +1246,7 @@ class MongoReplicaSetClient(common.BaseObject):
         if writer:
             response = members[writer].ismaster_response
         elif members:
-            response = next(six.itervalues(members)).ismaster_response
+            response = next(members.values()).ismaster_response
         else:
             response = {}
 
@@ -1826,7 +1824,7 @@ class MongoReplicaSetClient(common.BaseObject):
         :Parameters:
           - `cursor_id`: id of cursor to close
         """
-        if not isinstance(cursor_id, six.integer_types):
+        if not isinstance(cursor_id, integer_types):
             raise TypeError("cursor_id must be an instance of (int, long)")
 
         self._send_message(message.kill_cursors([cursor_id]),
@@ -1858,10 +1856,9 @@ class MongoReplicaSetClient(common.BaseObject):
         if isinstance(name, database.Database):
             name = name.name
 
-        if not isinstance(name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("name_or_database must be an instance of "
-                            "%s or Database" % string_names)
+        if not isinstance(name, string_types):
+            raise TypeError("name_or_database must be a string type "
+                            "or a Database")
 
         self._purge_index(name)
         self[name].command("dropDatabase")
@@ -1891,14 +1888,10 @@ class MongoReplicaSetClient(common.BaseObject):
         .. note:: Specifying `username` and `password` requires server
            version **>= 1.3.3+**.
         """
-        if not isinstance(from_name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("from_name must be an instance "
-                            "of one of the following: %s" % string_names)
-        if not isinstance(to_name, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("to_name must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(from_name, string_types):
+            raise TypeError("from_name must be a string type")
+        if not isinstance(to_name, string_types):
+            raise TypeError("to_name must be a string type")
 
         database._check_name(to_name)
 

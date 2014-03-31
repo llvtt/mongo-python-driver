@@ -15,10 +15,10 @@
 """Cursor class to iterate over Mongo query results."""
 import copy
 from collections import deque
-import six
 
 from bson import RE_TYPE
 from bson.code import Code
+from bson.py3compat import Iterator, iteritems, integer_types, string_types
 from bson.son import SON
 from pymongo import helpers, message, read_preferences
 from pymongo.read_preferences import ReadPreference, secondary_ok_commands
@@ -61,7 +61,7 @@ class _SocketManager:
 # TODO might be cool to be able to do find().include("foo") or
 # find().exclude(["bar", "baz"]) or find().slice("a", 1, 2) as an
 # alternative to the fields specifier.
-class Cursor(object, six.Iterator):
+class Cursor(object, Iterator):
     """A cursor / iterator over Mongo query results.
     """
 
@@ -246,7 +246,7 @@ class Cursor(object, six.Iterator):
                            "secondary_acceptable_latency_ms",
                            "must_use_master", "uuid_subtype", "compile_re",
                            "query_flags", "kwargs")
-        data = dict((k, v) for k, v in six.iteritems(self.__dict__)
+        data = dict((k, v) for k, v in iteritems(self.__dict__)
                     if k.startswith('_Cursor__') and k[9:] in values_to_clone)
         if deepcopy:
             data = self._deepcopy(data)
@@ -338,7 +338,7 @@ class Cursor(object, six.Iterator):
             # by db.command or calling find_one on $cmd directly
             if self.collection.name == "$cmd":
                 # Don't change commands that can't be sent to secondaries
-                command_name = spec and next(six.iterkeys(spec)).lower() or ""
+                command_name = spec and next(spec.keys()).lower() or ""
                 if command_name not in secondary_ok_commands:
                     return spec
                 elif command_name == 'mapreduce':
@@ -365,8 +365,7 @@ class Cursor(object, six.Iterator):
         # Checking spec.keys()[0] covers the case that the spec
         # was passed as an instance of SON or OrderedDict.
         elif ("query" in self.__spec and
-              (len(self.__spec) == 1 or
-               next(six.iterkeys(self.__spec)) == "query")):
+              (len(self.__spec) == 1 or next(self.__spec.keys()) == "query")):
             return SON({"$query": self.__spec})
 
         return self.__spec
@@ -441,7 +440,7 @@ class Cursor(object, six.Iterator):
 
         .. mongodoc:: limit
         """
-        if not isinstance(limit, six.integer_types):
+        if not isinstance(limit, integer_types):
             raise TypeError("limit must be an integer")
         if self.__exhaust:
             raise InvalidOperation("Can't use limit and exhaust together.")
@@ -472,7 +471,7 @@ class Cursor(object, six.Iterator):
 
         .. versionadded:: 1.9
         """
-        if not isinstance(batch_size, six.integer_types):
+        if not isinstance(batch_size, integer_types):
             raise TypeError("batch_size must be an integer")
         if batch_size < 0:
             raise ValueError("batch_size must be >= 0")
@@ -493,7 +492,7 @@ class Cursor(object, six.Iterator):
         :Parameters:
           - `skip`: the number of results to skip
         """
-        if not isinstance(skip, six.integer_types):
+        if not isinstance(skip, integer_types):
             raise TypeError("skip must be an integer")
         if skip < 0:
             raise ValueError("skip must be >= 0")
@@ -515,7 +514,7 @@ class Cursor(object, six.Iterator):
         :Parameters:
           - `max_time_ms`: the time limit after which the operation is aborted
         """
-        if (not isinstance(max_time_ms, six.integer_types)
+        if (not isinstance(max_time_ms, integer_types)
                 and max_time_ms is not None):
             raise TypeError("max_time_ms must be an integer or None")
         self.__check_okay_to_chain()
@@ -579,7 +578,7 @@ class Cursor(object, six.Iterator):
             self.__limit = limit
             return self
 
-        if isinstance(index, six.integer_types):
+        if isinstance(index, integer_types):
             if index < 0:
                 raise IndexError("Cursor instances do not support negative"
                                  "indices")
@@ -775,10 +774,8 @@ class Cursor(object, six.Iterator):
 
         .. versionadded:: 1.2
         """
-        if not isinstance(key, six.string_types):
-            string_names = ', '.join(s.__name__ for s in six.string_types)
-            raise TypeError("key must be an instance "
-                            "of one of the following: %s" % string_names)
+        if not isinstance(key, string_types):
+            raise TypeError("key must be a string type")
 
         options = {"key": key}
         if self.__spec:
@@ -1077,7 +1074,7 @@ class Cursor(object, six.Iterator):
         if not hasattr(x, 'items'):
             y, is_list, iterator = [], True, enumerate(x)
         else:
-            y, is_list, iterator = {}, False, six.iteritems(x)
+            y, is_list, iterator = {}, False, iteritems(x)
 
         if memo is None:
             memo = {}

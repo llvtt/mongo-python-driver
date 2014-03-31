@@ -15,12 +15,14 @@
 
 """Tools to parse and validate a MongoDB URI."""
 
-import six
+from bson.py3compat import PY3, string_types
 
-if six.PY2:
-    from urllib import unquote_plus
-elif six.PY3:
+if PY3:
+    # Python 3
     from urllib.parse import unquote_plus
+else:
+    from urllib import unquote_plus
+
 
 from pymongo.common import validate
 from pymongo.errors import (ConfigurationError,
@@ -138,7 +140,7 @@ def parse_host(entity, default_port=DEFAULT_PORT):
                                      "address literal must be enclosed in '[' "
                                      "and ']' according to RFC 2732.")
         host, port = host.split(':', 1)
-    if isinstance(port, six.string_types):
+    if isinstance(port, string_types):
         if not port.isdigit():
             raise ConfigurationError("Port number must be an integer.")
         port = int(port)
@@ -154,7 +156,7 @@ def validate_options(opts):
         - `opts`: A dict of MongoDB URI options.
     """
     normalized = {}
-    for option, value in six.iteritems(opts):
+    for option, value in opts.items():
         option, value = validate(option, value)
         # str(option) to ensure that a unicode URI results in plain 'str'
         # option names. 'normalized' is then suitable to be passed as kwargs

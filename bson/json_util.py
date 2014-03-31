@@ -77,6 +77,8 @@ import calendar
 import datetime
 import re
 
+from bson.py3compat import text_type
+
 json_lib = True
 try:
     import json
@@ -151,7 +153,7 @@ def _json_convert(obj):
     converted into json.
     """
     if hasattr(obj, 'iteritems') or hasattr(obj, 'items'):  # PY3 support
-        return SON(((k, _json_convert(v)) for k, v in obj.iteritems()))
+        return SON(((k, _json_convert(v)) for k, v in obj.items()))
     elif hasattr(obj, '__iter__') and not isinstance(obj, string_types):
         return list((_json_convert(v) for v in obj))
     try:
@@ -230,7 +232,7 @@ def default(obj):
             flags += "u"
         if obj.flags & re.VERBOSE:
             flags += "x"
-        if isinstance(obj.pattern, unicode):
+        if isinstance(obj.pattern, text_type):
             pattern = obj.pattern
         else:
             pattern = obj.pattern.decode('utf-8')

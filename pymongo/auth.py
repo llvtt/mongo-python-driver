@@ -31,10 +31,9 @@ try:
     import kerberos
 except ImportError:
     HAVE_KERBEROS = False
-import six
 
 from bson.binary import Binary
-from bson.py3compat import b
+from bson.py3compat import b, u, string_types
 from bson.son import SON
 from pymongo.errors import ConfigurationError, OperationFailure
 
@@ -58,20 +57,17 @@ def _build_credentials_tuple(mech, source, user, passwd, extra):
 def _password_digest(username, password):
     """Get a password digest to use for authentication.
     """
-    string_names = ','.join(s.__name__ for s in six.string_types)
-    if not isinstance(password, six.string_types):
-        raise TypeError("password must be an instance "
-                        "of one of the following" % string_names)
+    if not isinstance(password, string_types):
+        raise TypeError("password must be a string type")
     if len(password) == 0:
         raise ValueError("password can't be empty")
-    if not isinstance(username, six.string_types):
-        raise TypeError("password must be an instance "
-                        "of one of the following" % string_names)
+    if not isinstance(username, string_types):
+        raise TypeError("password must be a string type")
 
     md5hash = _MD5()
     data = "%s:mongo:%s" % (username, password)
     md5hash.update(data.encode('utf-8'))
-    return six.u(md5hash.hexdigest())
+    return u(md5hash.hexdigest())
 
 
 def _auth_key(nonce, username, password):
@@ -79,9 +75,9 @@ def _auth_key(nonce, username, password):
     """
     digest = _password_digest(username, password)
     md5hash = _MD5()
-    data = "%s%s%s" % (nonce, six.u(username), digest)
+    data = "%s%s%s" % (nonce, u(username), digest)
     md5hash.update(data.encode('utf-8'))
-    return six.u(md5hash.hexdigest())
+    return u(md5hash.hexdigest())
 
 
 def _authenticate_gssapi(credentials, sock_info, cmd_func):
