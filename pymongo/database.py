@@ -14,6 +14,7 @@
 
 """Database level operations."""
 
+import six
 import warnings
 
 from bson.binary import OLD_UUID_SUBTYPE
@@ -69,14 +70,15 @@ class Database(common.BaseObject):
                              uuidrepresentation=connection.uuid_subtype,
                              **connection.write_concern)
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("name must be an instance "
-                            "of %s" % (basestring.__name__,))
+                            "of one of the following: %s" % string_names)
 
         if name != '$external':
             _check_name(name)
 
-        self.__name = unicode(name)
+        self.__name = six.u(name)
         self.__connection = connection
 
         self.__incoming_manipulators = []
@@ -277,10 +279,10 @@ class Database(common.BaseObject):
         """Internal command helper.
         """
 
-        if isinstance(command, basestring):
+        if isinstance(command, six.string_types):
             command = SON([(command, value)])
 
-        command_name = command.keys()[0].lower()
+        command_name = next(command.keys()).lower()
         must_use_master = kwargs.pop('_use_master', False)
         if command_name not in rp.secondary_ok_commands:
             must_use_master = True
@@ -460,13 +462,14 @@ class Database(common.BaseObject):
         if isinstance(name, Collection):
             name = name.name
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("name_or_collection must be an instance of "
-                            "%s or Collection" % (basestring.__name__,))
+                            "%s or Collection" % string_names)
 
         self.__connection._purge_index(self.__name, name)
 
-        self.command("drop", unicode(name), allowable_errors=["ns not found"])
+        self.command("drop", six.u(name), allowable_errors=["ns not found"])
 
     def validate_collection(self, name_or_collection,
                             scandata=False, full=False):
@@ -499,11 +502,12 @@ class Database(common.BaseObject):
         if isinstance(name, Collection):
             name = name.name
 
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("name_or_collection must be an instance of "
-                            "%s or Collection" % (basestring.__name__,))
+                            "%s or Collection" % string_names)
 
-        result = self.command("validate", unicode(name),
+        result = self.command("validate", six.u(name),
                               scandata=scandata, full=full)
 
         valid = True
@@ -514,7 +518,7 @@ class Database(common.BaseObject):
                 raise CollectionInvalid("%s invalid: %s" % (name, info))
         # Sharded results
         elif "raw" in result:
-            for _, res in result["raw"].iteritems():
+            for _, res in six.iteritems(result["raw"]):
                 if "result" in res:
                     info = res["result"]
                     if (info.find("exception") != -1 or
@@ -648,9 +652,6 @@ class Database(common.BaseObject):
     def __iter__(self):
         return self
 
-    def next(self):
-        raise TypeError("'Database' object is not iterable")
-
     def _default_role(self, read_only):
         if self.name == "admin":
             if read_only:
@@ -711,7 +712,7 @@ class Database(common.BaseObject):
 
         try:
             self.system.users.save(user, **self._get_wc_override())
-        except OperationFailure, exc:
+        except OperationFailure as exc:
             # First admin user add fails gle in MongoDB >= 2.1.2
             # See SERVER-4225 for more information.
             if 'login' in str(exc):
@@ -747,13 +748,15 @@ class Database(common.BaseObject):
 
         .. versionadded:: 1.4
         """
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("name must be an instance "
-                            "of %s" % (basestring.__name__,))
+                            "of one of the following: %s" % string_names)
         if password is not None:
-            if not isinstance(password, basestring):
+            if not isinstance(password, six.string_types):
+                string_names = ', '.join(s.__name__ for s in six.string_types)
                 raise TypeError("password must be an instance "
-                                "of %s or None" % (basestring.__name__,))
+                                "of %s or None" % string_names)
             if len(password) == 0:
                 raise ValueError("password can't be empty")
         if read_only is not None:
@@ -764,7 +767,7 @@ class Database(common.BaseObject):
 
         try:
             uinfo = self.command("usersInfo", name)
-        except OperationFailure, exc:
+        except OperationFailure as exc:
             # MongoDB >= 2.5.3 requires the use of commands to manage
             # users. "No such command" error didn't return an error
             # code (59) before MongoDB 2.4.7 so we assume that an error
@@ -794,7 +797,7 @@ class Database(common.BaseObject):
         try:
             self.command("dropUser", name,
                          writeConcern=self._get_wc_override())
-        except OperationFailure, exc:
+        except OperationFailure as exc:
             # See comment in add_user try / except above.
             if exc.code in (59, None):
                 self.system.users.remove({"user": name},
@@ -852,25 +855,28 @@ class Database(common.BaseObject):
 
         .. mongodoc:: authenticate
         """
-        if not isinstance(name, basestring):
+        if not isinstance(name, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("name must be an instance "
-                            "of %s" % (basestring.__name__,))
-        if password is not None and not isinstance(password, basestring):
+                            "of one of the following: %s" % string_names)
+        if password is not None and not isinstance(password, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("password must be an instance "
-                            "of %s" % (basestring.__name__,))
-        if source is not None and not isinstance(source, basestring):
+                            "of one of the following: %s" % string_names)
+        if source is not None and not isinstance(source, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("source must be an instance "
-                            "of %s" % (basestring.__name__,))
+                            "of one of the following: %s" % string_names)
         common.validate_auth_mechanism('mechanism', mechanism)
 
         validated_options = {}
-        for option, value in kwargs.iteritems():
+        for option, value in six.iteritems(kwargs):
             normalized, val = common.validate_auth_option(option, value)
             validated_options[normalized] = val
 
         credentials = auth._build_credentials_tuple(mechanism,
-                                source or self.name, unicode(name),
-                                password and unicode(password) or None,
+                                source or self.name, six.u(name),
+                                password and six.u(password) or None,
                                 validated_options)
         self.connection._cache_credentials(self.name, credentials)
         return True

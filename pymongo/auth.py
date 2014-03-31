@@ -14,6 +14,8 @@
 
 """Authentication helpers."""
 
+from __future__ import unicode_literals
+
 import hmac
 try:
     import hashlib
@@ -29,6 +31,7 @@ try:
     import kerberos
 except ImportError:
     HAVE_KERBEROS = False
+import six
 
 from bson.binary import Binary
 from bson.py3compat import b
@@ -55,19 +58,20 @@ def _build_credentials_tuple(mech, source, user, passwd, extra):
 def _password_digest(username, password):
     """Get a password digest to use for authentication.
     """
-    if not isinstance(password, basestring):
+    string_names = ','.join(s.__name__ for s in six.string_types)
+    if not isinstance(password, six.string_types):
         raise TypeError("password must be an instance "
-                        "of %s" % (basestring.__name__,))
+                        "of one of the following" % string_names)
     if len(password) == 0:
         raise ValueError("password can't be empty")
-    if not isinstance(username, basestring):
-        raise TypeError("username must be an instance "
-                        "of %s" % (basestring.__name__,))
+    if not isinstance(username, six.string_types):
+        raise TypeError("password must be an instance "
+                        "of one of the following" % string_names)
 
     md5hash = _MD5()
     data = "%s:mongo:%s" % (username, password)
     md5hash.update(data.encode('utf-8'))
-    return unicode(md5hash.hexdigest())
+    return six.u(md5hash.hexdigest())
 
 
 def _auth_key(nonce, username, password):
@@ -75,9 +79,9 @@ def _auth_key(nonce, username, password):
     """
     digest = _password_digest(username, password)
     md5hash = _MD5()
-    data = "%s%s%s" % (nonce, unicode(username), digest)
+    data = "%s%s%s" % (nonce, six.u(username), digest)
     md5hash.update(data.encode('utf-8'))
-    return unicode(md5hash.hexdigest())
+    return six.u(md5hash.hexdigest())
 
 
 def _authenticate_gssapi(credentials, sock_info, cmd_func):
@@ -114,7 +118,7 @@ def _authenticate_gssapi(credentials, sock_info, cmd_func):
             response, _ = cmd_func(sock_info, '$external', cmd)
 
             # Limit how many times we loop to catch protocol / library issues
-            for _ in xrange(10):
+            for _ in range(10):
                 result = kerberos.authGSSClientStep(ctx,
                                                     str(response['payload']))
                 if result == -1:
@@ -156,7 +160,7 @@ def _authenticate_gssapi(credentials, sock_info, cmd_func):
         finally:
             kerberos.authGSSClientClean(ctx)
 
-    except kerberos.KrbError, exc:
+    except kerberos.KrbError as exc:
         raise OperationFailure(str(exc))
 
 

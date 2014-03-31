@@ -36,11 +36,13 @@ access:
   >>> c['test-database']
   Database(Connection('localhost', 27017), u'test-database')
 """
+import six
+
 from pymongo.mongo_client import MongoClient
 from pymongo.errors import ConfigurationError
 
 
-class Connection(MongoClient):
+class Connection(MongoClient, six.Iterator):
     """Connection to MongoDB.
     """
 
@@ -241,5 +243,5 @@ class Connection(MongoClient):
         else:
             return "Connection(%r)" % ["%s:%d" % n for n in self.nodes]
 
-    def next(self):
+    def __next__(self):
         raise TypeError("'Connection' object is not iterable")

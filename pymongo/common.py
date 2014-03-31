@@ -14,6 +14,7 @@
 
 
 """Functions and classes common to multiple pymongo modules."""
+import six
 import sys
 import warnings
 from pymongo import read_preferences
@@ -67,7 +68,7 @@ def validate_boolean(option, value):
     """
     if isinstance(value, bool):
         return value
-    elif isinstance(value, basestring):
+    elif isinstance(value, six.string_types):
         if value not in ('true', 'false'):
             raise ConfigurationError("The value of %s must be "
                                      "'true' or 'false'" % (option,))
@@ -78,9 +79,9 @@ def validate_boolean(option, value):
 def validate_integer(option, value):
     """Validates that 'value' is an integer (or basestring representation).
     """
-    if isinstance(value, (int, long)):
+    if isinstance(value, six.integer_types):
         return value
-    elif isinstance(value, basestring):
+    elif isinstance(value, six.string_types):
         if not value.isdigit():
             raise ConfigurationError("The value of %s must be "
                                      "an integer" % (option,))
@@ -136,18 +137,20 @@ def validate_positive_integer_or_none(option, value):
 def validate_basestring(option, value):
     """Validates that 'value' is an instance of `basestring`.
     """
-    if isinstance(value, basestring):
+    if isinstance(value, six.string_types):
         return value
+    string_names = ', '.join(s.__name__ for s in six.string_types)
     raise TypeError("Wrong type for %s, value must be an "
-                    "instance of %s" % (option, basestring.__name__))
+                    "instance of one of the following: %s"
+                    % (option, string_names))
 
 
 def validate_int_or_basestring(option, value):
     """Validates that 'value' is an integer or string.
     """
-    if isinstance(value, (int, long)):
+    if isinstance(value, six.integer_types):
         return value
-    elif isinstance(value, basestring):
+    elif isinstance(value, six.string_types):
         if value.isdigit():
             return int(value)
         return value
@@ -232,17 +235,17 @@ def validate_auth_mechanism(option, value):
 def validate_uuid_representation(dummy, value):
     """Validate the uuid representation option selected in the URI.
     """
-    if value not in _UUID_SUBTYPES.keys():
+    if value not in six.iterkeys(_UUID_SUBTYPES):
         raise ConfigurationError("%s is an invalid UUID representation. "
                                  "Must be one of "
-                                 "%s" % (value, _UUID_SUBTYPES.keys()))
+                                 "%s" % (value, list(_UUID_SUBTYPES.keys())))
     return _UUID_SUBTYPES[value]
 
 
 def validate_uuid_subtype(dummy, value):
     """Validate the uuid subtype option, a numerical value whose acceptable
     values are defined in bson.binary."""
-    if value not in _UUID_SUBTYPES.values():
+    if value not in six.itervalues(_UUID_SUBTYPES):
         raise ConfigurationError("Not a valid setting for uuid_subtype.")
     return value
 
@@ -384,7 +387,7 @@ class BaseObject(object):
 
     def __set_options(self, options):
         """Validates and sets all options passed to this object."""
-        for option, value in options.iteritems():
+        for option, value in six.iteritems(options):
             if option in ('slave_okay', 'slaveok'):
                 self.__slave_okay = validate_boolean(option, value)
             elif option in ('read_preference', "readpreference"):
@@ -415,7 +418,7 @@ class BaseObject(object):
         # Make a copy here to avoid users accidentally setting the
         # same dict on multiple instances.
         wc = WriteConcern()
-        for k, v in value.iteritems():
+        for k, v in six.iteritems(value):
             # Make sure we validate each option.
             wc[k] = v
         self.__write_concern = wc
@@ -629,7 +632,7 @@ class BaseObject(object):
         warnings.warn("set_lasterror_options is deprecated. Please use "
                       "write_concern instead.", DeprecationWarning,
                       stacklevel=2)
-        for key, value in kwargs.iteritems():
+        for key, value in six.iteritems(kwargs):
             self.__set_safe_option(key, value)
 
     def unset_lasterror_options(self, *options):

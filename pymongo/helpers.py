@@ -15,6 +15,7 @@
 """Bits and pieces used by the driver that don't really fit elsewhere."""
 
 import random
+import six
 import struct
 
 import bson
@@ -38,7 +39,7 @@ def _index_list(key_or_list, direction=None):
     if direction is not None:
         return [(key_or_list, direction)]
     else:
-        if isinstance(key_or_list, basestring):
+        if isinstance(key_or_list, six.string_types):
             return [(key_or_list, pymongo.ASCENDING)]
         elif not isinstance(key_or_list, (list, tuple)):
             raise TypeError("if no direction is specified, "
@@ -54,7 +55,7 @@ def _index_document(index_list):
     if isinstance(index_list, dict):
         raise TypeError("passing a dict to sort/create_index/hint is not "
                         "allowed - use a list of tuples instead. did you "
-                        "mean %r?" % list(index_list.iteritems()))
+                        "mean %r?" % list(index_list.items()))
     elif not isinstance(index_list, (list, tuple)):
         raise TypeError("must use a list of (key, direction) pairs, "
                         "not: " + repr(index_list))
@@ -63,9 +64,9 @@ def _index_document(index_list):
 
     index = SON()
     for (key, value) in index_list:
-        if not isinstance(key, basestring):
+        if not isinstance(key, six.string_types):
             raise TypeError("first item in each key pair must be a string")
-        if not isinstance(value, (basestring, int, dict)):
+        if not isinstance(value, six.string_types + [int, dict]):
             raise TypeError("second item in each key pair must be 1, -1, "
                             "'2d', 'geoHaystack', or another valid MongoDB "
                             "index specifier.")
@@ -142,7 +143,7 @@ def _check_command_response(response, reset, msg=None, allowable_errors=None):
         # Mongos returns the error details in a 'raw' object
         # for some errors.
         if "raw" in response:
-            for shard in response["raw"].itervalues():
+            for shard in six.itervalues(response["raw"]):
                 if not shard.get("ok"):
                     # Just grab the first error...
                     details = shard
@@ -216,9 +217,10 @@ def _fields_list_to_dict(fields):
     """
     as_dict = {}
     for field in fields:
-        if not isinstance(field, basestring):
+        if not isinstance(field, six.string_types):
+            string_names = ', '.join(s.__name__ for s in six.string_types)
             raise TypeError("fields must be a list of key names, "
-                            "each an instance of %s" % (basestring.__name__,))
+                            "each an instance of one of: %s" % string_names)
         as_dict[field] = 1
     return as_dict
 

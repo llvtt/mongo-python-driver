@@ -14,6 +14,8 @@
 
 """Represent a mongod / mongos instance"""
 
+import six
+
 from pymongo import common
 from pymongo.errors import ConfigurationError
 from pymongo.read_preferences import ReadPreference
@@ -129,7 +131,7 @@ class Member(object):
            tags. E.g., if this member is tagged {'dc': 'ny', 'rack': '1'},
            then it matches {'dc': 'ny'}.
         """
-        for key, value in tags.items():
+        for key, value in six.iteritems(tags):
             if key not in self.tags or self.tags[key] != value:
                 return False
 

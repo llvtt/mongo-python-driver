@@ -13,6 +13,7 @@
 # permissions and limitations under the License.
 
 import os
+import six
 import socket
 import sys
 import time
@@ -221,7 +222,7 @@ class Pool:
             try:
                 sock.connect(host)
                 return sock
-            except socket.error, e:
+            except socket.error as e:
                 if sock is not None:
                     sock.close()
                 raise e
@@ -243,7 +244,7 @@ class Pool:
                 sock.settimeout(self.conn_timeout or 20.0)
                 sock.connect(sa)
                 return sock
-            except socket.error, e:
+            except socket.error as e:
                 err = e
                 if sock is not None:
                     sock.close()
@@ -528,7 +529,7 @@ class Pool:
         for sock_info in self.sockets:
             sock_info.close()
 
-        for request_sock in self._tid_to_sock.values():
+        for request_sock in six.itervalues(self._tid_to_sock):
             if request_sock not in (NO_REQUEST, NO_SOCKET_YET):
                 request_sock.close()
 

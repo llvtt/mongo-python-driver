@@ -14,6 +14,7 @@
 
 """Python driver for MongoDB."""
 
+import six
 
 ASCENDING = 1
 """Ascending sort order."""
@@ -70,7 +71,7 @@ ALL = 2
 version_tuple = (2, 7, 'rc1+')
 
 def get_version_string():
-    if isinstance(version_tuple[-1], basestring):
+    if isinstance(version_tuple[-1], six.string_types):
         return '.'.join(map(str, version_tuple[:-1])) + version_tuple[-1]
     return '.'.join(map(str, version_tuple))
 

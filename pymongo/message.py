@@ -242,7 +242,7 @@ def _do_batched_insert(collection_name, docs, check_keys,
                                                      send_safe), send_safe)
             # Exception type could be OperationFailure or a subtype
             # (e.g. DuplicateKeyError)
-            except OperationFailure, exc:
+            except OperationFailure as exc:
                 # Like it says, continue on error...
                 if continue_on_error:
                     # Store exception details to re-raise after the final batch.

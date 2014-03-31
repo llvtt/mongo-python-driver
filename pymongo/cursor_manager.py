@@ -23,6 +23,7 @@ installed on a connection by calling
    Deprecated.
 """
 
+import six
 import weakref
 
 
@@ -48,7 +49,7 @@ class CursorManager(object):
         :Parameters:
           - `cursor_id`: cursor id to close
         """
-        if not isinstance(cursor_id, (int, long)):
+        if not isinstance(cursor_id, six.integer_types):
             raise TypeError("cursor_id must be an instance of (int, long)")
 
         self.__connection().kill_cursors([cursor_id])
@@ -83,7 +84,7 @@ class BatchCursorManager(CursorManager):
         :Parameters:
           - `cursor_id`: cursor id to close
         """
-        if not isinstance(cursor_id, (int, long)):
+        if not isinstance(cursor_id, six.integer_types):
             raise TypeError("cursor_id must be an instance of (int, long)")
 
         self.__dying_cursors.append(cursor_id)
