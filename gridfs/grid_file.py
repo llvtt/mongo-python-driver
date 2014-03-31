@@ -20,7 +20,7 @@ import os
 
 from bson.binary import Binary
 from bson.objectid import ObjectId
-from bson.py3compat import (b, binary_type, next_item,
+from bson.py3compat import (b, binary_type, Iterator,
                             string_types, text_type, StringIO)
 from gridfs.errors import (CorruptGridFile,
                            FileExists,
@@ -319,7 +319,7 @@ class GridIn(object):
             # string
             if not isinstance(data, string_types):
                 raise TypeError("can only write strings or file-like objects")
-            if isinstance(data, unicode):
+            if isinstance(data, text_type):
                 try:
                     data = data.encode(self.encoding)
                 except AttributeError:
@@ -586,7 +586,7 @@ class GridOut(object):
         return False
 
 
-class GridOutIterator(object):
+class GridOutIterator(object, Iterator):
     def __init__(self, grid_out, chunks):
         self.__id = grid_out._id
         self.__chunks = chunks
@@ -652,11 +652,10 @@ class GridOutCursor(Cursor):
             secondary_acceptable_latency_ms=latency, compile_re=compile_re,
             tag_sets=tag_sets)
 
-    def next(self):
+    def __next__(self):
         """Get next GridOut object from cursor.
         """
-        # Work around "super is not iterable" issue in Python 3.x
-        next_file = getattr(super(GridOutCursor, self), next_item)()
+        next_file = next(super(GridOutCursor), self)
         return GridOut(self.__root_collection, file_document=next_file)
 
     def add_option(self, *args, **kwargs):
