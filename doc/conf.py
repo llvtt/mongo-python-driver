@@ -4,6 +4,8 @@
 #
 # This file is execfile()d with the current directory set to its containing dir.
 
+from __future__ import unicode_literals
+
 import sys, os
 sys.path[0:0] = [os.path.abspath('..')]
 
@@ -26,8 +28,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'PyMongo'
-copyright = u'2008 - 2014, MongoDB, Inc.'
+project = 'PyMongo'
+copyright = '2008 - 2014, MongoDB, Inc.'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -137,8 +139,8 @@ htmlhelp_basename = 'PyMongo' + release.replace('.', '_')
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'PyMongo.tex', u'PyMongo Documentation',
-   u'Michael Dirolf', 'manual'),
+  ('index', 'PyMongo.tex', 'PyMongo Documentation',
+   'Michael Dirolf', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
