@@ -66,7 +66,8 @@ def _index_document(index_list):
     for (key, value) in index_list:
         if not isinstance(key, string_types):
             raise TypeError("first item in each key pair must be a string")
-        if not isinstance(value, string_types + [int, dict]):
+        if not (isinstance(value, string_types) or
+                isinstance(value, (int, dict))):
             raise TypeError("second item in each key pair must be 1, -1, "
                             "'2d', 'geoHaystack', or another valid MongoDB "
                             "index specifier.")

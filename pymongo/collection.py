@@ -1024,8 +1024,8 @@ class Collection(common.BaseObject, Iterator):
                           DeprecationWarning, stacklevel=2)
 
         # The types supported by datetime.timedelta. 2to3 removes long.
-        number_types = integer_types + [float]
-        if not isinstance(cache_for, number_types):
+        if not (isinstance(cache_for, integer_types) or
+                isinstance(cache_for, float)):
             raise TypeError("cache_for must be an integer or float.")
 
         keys = helpers._index_list(key_or_list)

@@ -655,7 +655,7 @@ class GridOutCursor(Cursor):
     def __next__(self):
         """Get next GridOut object from cursor.
         """
-        next_file = next(super(GridOutCursor), self)
+        next_file = super(GridOutCursor, self).__next__()
         return GridOut(self.__root_collection, file_document=next_file)
 
     def add_option(self, *args, **kwargs):
