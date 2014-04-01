@@ -15,7 +15,11 @@
 """Test built in connection-pooling with threads."""
 
 import sys
-import thread
+try:
+    # Python 2
+    import thread
+except ImportError:
+    import _thread as thread
 import time
 import unittest
 

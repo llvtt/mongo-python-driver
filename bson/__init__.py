@@ -31,7 +31,13 @@ from bson.errors import (InvalidBSON,
 from bson.max_key import MaxKey
 from bson.min_key import MinKey
 from bson.objectid import ObjectId
-from bson.py3compat import b, binary_type, long_type, text_type, PY3
+from bson.py3compat import (b,
+                            binary_type,
+                            long_type,
+                            text_type,
+                            string_types,
+                            reraise,
+                            PY3)
 from bson.regex import Regex
 from bson.son import SON, RE_TYPE
 from bson.timestamp import Timestamp
@@ -535,10 +541,8 @@ def decode_all(data, as_class=dict,
     except Exception:
         # Change exception type to InvalidBSON but preserve traceback.
         exc_type, exc_value, exc_tb = sys.exc_info()
-        if PY3:
-            raise InvalidBSON(str(exc_value)).with_traceback(exc_tb)
-        else:
-            raise InvalidBSON, str(exc_value), exc_tb
+        reraise(InvalidBSON, exc_value, exc_tb)
+
 
 if _use_c:
     decode_all = _cbson.decode_all

@@ -22,6 +22,7 @@ from nose.plugins.skip import SkipTest
 sys.path[0:0] = [""]
 
 from bson import InvalidDocument, SON
+from bson.py3compat import string_types
 from pymongo.errors import BulkWriteError, InvalidOperation, OperationFailure
 from test import version
 from test.test_client import get_client
@@ -627,7 +628,7 @@ class TestBulk(BulkTestBase):
 
             try:
                 batch.execute()
-            except BulkWriteError, exc:
+            except BulkWriteError as exc:
                 result = exc.details
                 self.assertEqual(exc.code, 65)
             else:
@@ -666,7 +667,7 @@ class TestBulk(BulkTestBase):
 
             try:
                 batch.execute()
-            except BulkWriteError, exc:
+            except BulkWriteError as exc:
                 result = exc.details
                 self.assertEqual(exc.code, 65)
             else:
@@ -721,7 +722,7 @@ class TestBulk(BulkTestBase):
 
             try:
                 batch.execute()
-            except BulkWriteError, exc:
+            except BulkWriteError as exc:
                 result = exc.details
                 self.assertEqual(exc.code, 65)
             else:
@@ -760,7 +761,7 @@ class TestBulk(BulkTestBase):
 
             try:
                 batch.execute()
-            except BulkWriteError, exc:
+            except BulkWriteError as exc:
                 result = exc.details
                 self.assertEqual(exc.code, 65)
             else:
@@ -802,7 +803,7 @@ class TestBulk(BulkTestBase):
 
         try:
             batch.execute()
-        except BulkWriteError, exc:
+        except BulkWriteError as exc:
             result = exc.details
             self.assertEqual(exc.code, 65)
         else:
@@ -834,7 +835,7 @@ class TestBulk(BulkTestBase):
 
         try:
             batch.execute()
-        except BulkWriteError, exc:
+        except BulkWriteError as exc:
             result = exc.details
             self.assertEqual(exc.code, 65)
         else:
@@ -929,7 +930,7 @@ class TestBulkWriteConcern(BulkTestBase):
         else:
             try:
                 batch.execute({'w': self.w + 1, 'wtimeout': 1})
-            except BulkWriteError, exc:
+            except BulkWriteError as exc:
                 result = exc.details
                 self.assertEqual(exc.code, 65)
             else:
@@ -951,7 +952,7 @@ class TestBulkWriteConcern(BulkTestBase):
 
             failed = result['writeConcernErrors'][0]
             self.assertEqual(64, failed['code'])
-            self.assertTrue(isinstance(failed['errmsg'], basestring))
+            self.assertTrue(isinstance(failed['errmsg'], string_types))
 
             self.coll.remove()
             self.coll.ensure_index('a', unique=True)
@@ -966,7 +967,7 @@ class TestBulkWriteConcern(BulkTestBase):
                 batch.insert({'a': 2})
                 try:
                     batch.execute({'w': self.w + 1, 'wtimeout': 1})
-                except BulkWriteError, exc:
+                except BulkWriteError as exc:
                     result = exc.details
                     self.assertEqual(exc.code, 65)
                 else:
@@ -1012,7 +1013,7 @@ class TestBulkWriteConcern(BulkTestBase):
         else:
             try:
                 batch.execute({'w': self.w + 1, 'wtimeout': 1})
-            except BulkWriteError, exc:
+            except BulkWriteError as exc:
                 result = exc.details
                 self.assertEqual(exc.code, 65)
             else:
@@ -1039,7 +1040,7 @@ class TestBulkWriteConcern(BulkTestBase):
                 batch.insert({'a': 2})
                 try:
                     batch.execute({'w': self.w + 1, 'wtimeout': 1})
-                except BulkWriteError, exc:
+                except BulkWriteError as exc:
                     result = exc.details
                     self.assertEqual(exc.code, 65)
                 else:
@@ -1055,12 +1056,12 @@ class TestBulkWriteConcern(BulkTestBase):
                 failed = result['writeErrors'][0]
                 self.assertEqual(2, failed['index'])
                 self.assertEqual(11000, failed['code'])
-                self.assertTrue(isinstance(failed['errmsg'], basestring))
+                self.assertTrue(isinstance(failed['errmsg'], string_types))
                 self.assertEqual(1, failed['op']['a'])
 
                 failed = result['writeConcernErrors'][0]
                 self.assertEqual(64, failed['code'])
-                self.assertTrue(isinstance(failed['errmsg'], basestring))
+                self.assertTrue(isinstance(failed['errmsg'], string_types))
 
                 upserts = result['upserted']
                 self.assertEqual(1, len(upserts))

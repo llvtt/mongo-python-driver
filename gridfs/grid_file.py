@@ -586,7 +586,7 @@ class GridOut(object):
         return False
 
 
-class GridOutIterator(object, Iterator):
+class GridOutIterator(Iterator):
     def __init__(self, grid_out, chunks):
         self.__id = grid_out._id
         self.__chunks = chunks

@@ -30,7 +30,7 @@ import threading
 import time
 import gridfs
 
-from bson.py3compat import b, StringIO
+from bson.py3compat import b, StringIO, string_types
 from gridfs.errors import (FileExists,
                            NoFile)
 from test.test_client import get_client
@@ -131,7 +131,7 @@ class TestGridfs(unittest.TestCase):
         self.assertEqual(oid, raw["_id"])
         self.assertTrue(isinstance(raw["uploadDate"], datetime.datetime))
         self.assertEqual(255 * 1024, raw["chunkSize"])
-        self.assertTrue(isinstance(raw["md5"], basestring))
+        self.assertTrue(isinstance(raw["md5"], string_types))
 
     def test_alt_collection(self):
         oid = self.alt.put(b("hello world"))
@@ -385,14 +385,14 @@ class TestGridfs(unittest.TestCase):
         self.assertEqual(4, self.fs.find().count())
         cursor = self.fs.find(timeout=False).sort("uploadDate", -1).skip(1).limit(2)
         # 2to3 hint...
-        gout = cursor.next()
+        gout = next(cursor)
         self.assertEqual(b("test1"), gout.read())
         cursor.rewind()
-        gout = cursor.next()
+        gout = next(cursor)
         self.assertEqual(b("test1"), gout.read())
-        gout = cursor.next()
+        gout = next(cursor)
         self.assertEqual(b("test2+"), gout.read())
-        self.assertRaises(StopIteration, cursor.next)
+        self.assertRaises(StopIteration, cursor.__next__)
         cursor.close()
         self.assertRaises(TypeError, self.fs.find, {}, {"_id": True})
 

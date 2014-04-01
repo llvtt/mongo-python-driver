@@ -20,7 +20,11 @@ import threading
 import socket
 import sys
 import time
-import thread
+try:
+    # Python 2
+    import thread
+except ImportError:
+    import _thread as thread
 import unittest
 
 
@@ -554,13 +558,13 @@ class TestClient(unittest.TestCase, TestRequestMixin):
         where_func = delay(timeout_sec + 1)
 
         def get_x(db):
-            doc = db.test.find().where(where_func).next()
+            doc = next(db.test.find().where(where_func))
             return doc["x"]
         self.assertEqual(1, get_x(no_timeout.pymongo_test))
         self.assertRaises(ConnectionFailure, get_x, timeout.pymongo_test)
 
         def get_x_timeout(db, t):
-            doc = db.test.find(network_timeout=t).where(where_func).next()
+            doc = next(db.test.find(network_timeout=t).where(where_func))
             return doc["x"]
         self.assertEqual(1, get_x_timeout(timeout.pymongo_test, None))
         self.assertRaises(ConnectionFailure, get_x_timeout,
@@ -633,7 +637,7 @@ class TestClient(unittest.TestCase, TestRequestMixin):
         self.assertTrue(c.is_locked)
         locked = True
         c.unlock()
-        for _ in xrange(5):
+        for _ in range(5):
             locked = c.is_locked
             if not locked:
                 break
@@ -656,17 +660,15 @@ class TestClient(unittest.TestCase, TestRequestMixin):
 
         # We need exec here because if the Python version is less than 2.6
         # these with-statements won't even compile.
-        exec """
-with contextlib.closing(client):
-    self.assertEqual("bar", client.pymongo_test.test.find_one()["foo"])
-self.assertEqual(None, client._MongoClient__member)
-"""
 
-        exec """
-with get_client() as client:
-    self.assertEqual("bar", client.pymongo_test.test.find_one()["foo"])
-self.assertEqual(None, client._MongoClient__member)
-"""
+        with contextlib.closing(client):
+            self.assertEqual("bar", client.pymongo_test.test.find_one()["foo"])
+        self.assertEqual(None, client._MongoClient__member)
+
+        with get_client() as client:
+            self.assertEqual("bar", client.pymongo_test.test.find_one()["foo"])
+        self.assertEqual(None, client._MongoClient__member)
+
 
     def test_with_start_request(self):
         client = get_client()
@@ -695,13 +697,12 @@ self.assertEqual(None, client._MongoClient__member)
         if sys.version_info >= (2, 6):
             # We need exec here because if the Python version is less than 2.6
             # these with-statements won't even compile.
-            exec """
-with client.start_request() as request:
-    self.assertEqual(client, request.connection)
-    self.assertNoSocketYet(pool)
-    self.assertSameSock(pool)
-    self.assertRequestSocket(pool)
-"""
+
+            with client.start_request() as request:
+                self.assertEqual(client, request.connection)
+                self.assertNoSocketYet(pool)
+                self.assertSameSock(pool)
+                self.assertRequestSocket(pool)
 
             # Request has ended
             self.assertNoRequest(pool)
@@ -837,7 +838,7 @@ with client.start_request() as request:
         raised = False
         try:
             # Will be interrupted by a KeyboardInterrupt.
-            db.foo.find({'$where': where}).next()
+            next(db.foo.find({'$where': where}))
         except KeyboardInterrupt:
             raised = True
 
@@ -850,7 +851,7 @@ with client.start_request() as request:
         # request id's don't match.
         self.assertEqual(
             {'_id': 1},
-            db.foo.find().next()
+            next(db.foo.find())
         )
 
     def test_operation_failure_without_request(self):
@@ -859,7 +860,7 @@ with client.start_request() as request:
         c = get_client()
         pool = get_pool(c)
         self.assertEqual(1, len(pool.sockets))
-        old_sock_info = iter(pool.sockets).next()
+        old_sock_info = next(iter(pool.sockets))
         c.pymongo_test.test.drop()
         c.pymongo_test.test.insert({'_id': 'foo'})
         self.assertRaises(
@@ -867,7 +868,7 @@ with client.start_request() as request:
             c.pymongo_test.test.insert, {'_id': 'foo'})
 
         self.assertEqual(1, len(pool.sockets))
-        new_sock_info = iter(pool.sockets).next()
+        new_sock_info = next(iter(pool.sockets))
         self.assertEqual(old_sock_info, new_sock_info)
 
     def test_operation_failure_with_request(self):

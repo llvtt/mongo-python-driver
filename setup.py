@@ -263,7 +263,6 @@ else:
     extra_opts['ext_modules'] = ext_modules
 
 if PY3:
-    extra_opts["use_2to3"] = True
     if should_run_tests:
         # Distribute isn't smart enough to copy the
         # tests and run 2to3 on them. We don't want to
@@ -308,8 +307,6 @@ setup(
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.4",
-        "Programming Language :: Python :: 2.5",
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",

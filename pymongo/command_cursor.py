@@ -21,7 +21,7 @@ from pymongo import helpers, message
 from pymongo.errors import AutoReconnect, CursorNotFound
 
 
-class CommandCursor(object, Iterator):
+class CommandCursor(Iterator):
     """A cursor / iterator over command cursors.
     """
 

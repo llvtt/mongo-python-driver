@@ -25,7 +25,7 @@ from nose.plugins.skip import SkipTest
 
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
-from bson.py3compat import b, binary_type
+from bson.py3compat import b, binary_type, u
 from bson.tz_util import (FixedOffset,
                           utc)
 
@@ -52,7 +52,7 @@ class TestObjectId(unittest.TestCase):
 
     def test_unicode(self):
         a = ObjectId()
-        self.assertEqual(a, ObjectId(unicode(a)))
+        self.assertEqual(a, ObjectId(u(a)))
         self.assertEqual(ObjectId("123456789012123456789012"),
                          ObjectId(u"123456789012123456789012"))
         self.assertRaises(InvalidId, ObjectId, u"hello")

@@ -39,7 +39,7 @@ from bson.binary import Binary, UUIDLegacy
 from bson.code import Code
 from bson.objectid import ObjectId
 from bson.dbref import DBRef
-from bson.py3compat import b
+from bson.py3compat import b, long_type, text_type
 from bson.son import SON
 from bson.timestamp import Timestamp
 from bson.errors import (InvalidBSON,
@@ -240,9 +240,9 @@ class TestBSON(unittest.TestCase):
         helper({"test": u"hello"})
         self.assertTrue(isinstance(BSON.encode({"hello": "world"})
                                 .decode()["hello"],
-                                unicode))
+                                   text_type))
         helper({"mike": -10120})
-        helper({"long": long(10)})
+        helper({"long": long_type(10)})
         helper({"really big long": 2147483648})
         helper({u"hello": 0.0013109})
         helper({"something": True})
@@ -367,13 +367,13 @@ class TestBSON(unittest.TestCase):
             self.assertRaises(RuntimeError, BSON.encode, evil_data)
 
     def test_overflow(self):
-        self.assertTrue(BSON.encode({"x": 9223372036854775807L}))
+        self.assertTrue(BSON.encode({"x": long_type(9223372036854775807)}))
         self.assertRaises(OverflowError, BSON.encode,
-                          {"x": 9223372036854775808L})
+                          {"x": long_type(9223372036854775808)})
 
-        self.assertTrue(BSON.encode({"x": -9223372036854775808L}))
+        self.assertTrue(BSON.encode({"x": long_type(-9223372036854775808)}))
         self.assertRaises(OverflowError, BSON.encode,
-                          {"x": -9223372036854775809L})
+                          {"x": long_type(-9223372036854775809)})
 
     def test_small_long_encode_decode(self):
         if PY3:
@@ -384,10 +384,10 @@ class TestBSON(unittest.TestCase):
         self.assertEqual(256, decoded1)
         self.assertEqual(type(256), type(decoded1))
 
-        encoded2 = BSON.encode({'x': 256L})
+        encoded2 = BSON.encode({'x': long_type(256)})
         decoded2 = BSON.decode(encoded2)['x']
-        self.assertEqual(256L, decoded2)
-        self.assertEqual(type(256L), type(decoded2))
+        self.assertEqual(long_type(256), decoded2)
+        self.assertEqual(type(long_type(256)), type(decoded2))
 
         self.assertNotEqual(type(decoded1), type(decoded2))
 
@@ -442,7 +442,7 @@ class TestBSON(unittest.TestCase):
             # Python 2.
             try:
                 BSON.encode(y)
-            except InvalidStringData, e:
+            except InvalidStringData as e:
                 self.assertTrue(repr(iso8859_bytes) in str(e))
 
             # The next two tests only make sense in python 2.x since
@@ -515,14 +515,14 @@ class TestBSON(unittest.TestCase):
         class _myfloat(float):
             pass
 
-        class _myunicode(unicode):
+        class _myunicode(text_type):
             pass
 
         d = {'a': _myint(42), 'b': _myfloat(63.9),
              'c': _myunicode('hello world')
             }
         d2 = BSON.encode(d).decode()
-        for key, value in d2.iteritems():
+        for key, value in d2.items():
             orig_value = d[key]
             orig_type = orig_value.__class__.__bases__[0]
             self.assertEqual(type(value), orig_type)

@@ -58,6 +58,8 @@ def gen_int():
 
 
 def gen_float():
+    if PY3:
+        return lambda: (random.random() - 0.5) * sys.maxsize
     return lambda: (random.random() - 0.5) * sys.maxint
 
 
@@ -86,6 +88,8 @@ def gen_string(gen_length):
 
 
 def gen_unichar():
+    if PY3:
+        return lambda: chr(random.randint(1, 0xFFF))
     return lambda: unichr(random.randint(1, 0xFFF))
 
 
@@ -188,13 +192,13 @@ def simplify(case):  # TODO this is a hack
         simplified = SON(case)  # make a copy!
         if random.choice([True, False]):
             # delete
-            if not len(simplified.keys()):
+            if not len(list(simplified.keys())):
                 return (False, case)
             del simplified[random.choice(simplified.keys())]
             return (True, simplified)
         else:
             # simplify a value
-            if not len(simplified.items()):
+            if not len(list(simplified.items())):
                 return (False, case)
             (key, value) = random.choice(simplified.items())
             (success, value) = simplify(value)

@@ -202,7 +202,7 @@ class TestUseGreenletsWithoutGevent(unittest.TestCase):
                 "Pool(use_greenlets=True) when Gevent is unavailable")
 
         # Possible outcomes of __del__.
-        DID_NOT_RUN, RAISED, SUCCESS = range(3)
+        DID_NOT_RUN, RAISED, SUCCESS = list(range(3))
         outcome = [DID_NOT_RUN]
 
         class TestPool(pool.Pool):

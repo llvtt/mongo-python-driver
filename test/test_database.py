@@ -29,6 +29,7 @@ from bson.code import Code
 from bson.regex import Regex
 from bson.dbref import DBRef
 from bson.objectid import ObjectId
+from bson.py3compat import string_types, long_type, text_type
 from bson.son import SON, RE_TYPE
 from pymongo import (ALL,
                      auth,
@@ -231,12 +232,12 @@ class TestDatabase(unittest.TestCase):
         if version.at_least(db.connection, (1, 9, 1, -1)):
             self.assertTrue(isinstance(info[0]['responseLength'], int))
             self.assertTrue(isinstance(info[0]['millis'], int))
-            self.assertTrue(isinstance(info[0]['client'], basestring))
-            self.assertTrue(isinstance(info[0]['user'], basestring))
-            self.assertTrue(isinstance(info[0]['ns'], basestring))
-            self.assertTrue(isinstance(info[0]['op'], basestring))
+            self.assertTrue(isinstance(info[0]['client'], string_types))
+            self.assertTrue(isinstance(info[0]['user'], string_types))
+            self.assertTrue(isinstance(info[0]['ns'], string_types))
+            self.assertTrue(isinstance(info[0]['op'], string_types))
         else:
-            self.assertTrue(isinstance(info[0]["info"], basestring))
+            self.assertTrue(isinstance(info[0]["info"], string_types))
             self.assertTrue(isinstance(info[0]["millis"], float))
         self.assertTrue(isinstance(info[0]["ts"], datetime.datetime))
 
@@ -342,7 +343,7 @@ class TestDatabase(unittest.TestCase):
         self.assertRaises(TypeError, auth._password_digest, None)
 
         self.assertTrue(isinstance(auth._password_digest("mike", "password"),
-                                unicode))
+                                   text_type))
         self.assertEqual(auth._password_digest("mike", "password"),
                          u"cd7e45b3b2767dc2fa9b6b548457ed00")
         self.assertEqual(auth._password_digest("mike", "password"),
@@ -760,8 +761,8 @@ class TestDatabase(unittest.TestCase):
     def test_long(self):
         db = self.client.pymongo_test
         db.test.remove({})
-        db.test.save({"x": 9223372036854775807L})
-        self.assertEqual(9223372036854775807L, db.test.find_one()["x"])
+        db.test.save({"x": long_type(9223372036854775807)})
+        self.assertEqual(long_type(9223372036854775807), db.test.find_one()["x"])
 
     def test_remove(self):
         db = self.client.pymongo_test
@@ -801,7 +802,7 @@ class TestDatabase(unittest.TestCase):
         db = self.client.pymongo_test
         db.test.remove({})
 
-        for i in xrange(1000):
+        for i in range(1000):
             db.test.save({"x": i})
 
         count = 0
@@ -811,7 +812,7 @@ class TestDatabase(unittest.TestCase):
         self.assertEqual(1000, count)
 
         # test that kill cursors doesn't assert or anything
-        for _ in xrange(62):
+        for _ in range(62):
             for _ in db.test.find():
                 break
 
@@ -941,7 +942,7 @@ class TestDatabase(unittest.TestCase):
 
         try:
             helpers._check_command_response({'$err': 'foo'}, reset=None)
-        except OperationFailure, e:
+        except OperationFailure as e:
             self.assertEqual(e.args[0], 'foo')
         else:
             self.fail("_check_command_response didn't raise OperationFailure")

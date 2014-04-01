@@ -61,7 +61,7 @@ class _SocketManager:
 # TODO might be cool to be able to do find().include("foo") or
 # find().exclude(["bar", "baz"]) or find().slice("a", 1, 2) as an
 # alternative to the fields specifier.
-class Cursor(object, Iterator):
+class Cursor(Iterator):
     """A cursor / iterator over Mongo query results.
     """
 

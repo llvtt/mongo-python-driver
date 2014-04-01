@@ -267,7 +267,7 @@ class TestBinary(unittest.TestCase):
         self.assertEqual(0, coll.find({'uuid': uu}).count())
         cur = coll.find({'uuid': UUIDLegacy(uu)})
         self.assertEqual(1, cur.count())
-        retrieved = cur.next()
+        retrieved = next(cur)
         self.assertEqual(uu, retrieved['uuid'])
 
         # Test regular UUID queries (using subtype 4).
@@ -275,7 +275,7 @@ class TestBinary(unittest.TestCase):
         self.assertEqual(2, coll.count())
         cur = coll.find({'uuid': uu})
         self.assertEqual(1, cur.count())
-        retrieved = cur.next()
+        retrieved = next(cur)
         self.assertEqual(uu, retrieved['uuid'])
 
         # Test both.
@@ -299,7 +299,7 @@ class TestBinary(unittest.TestCase):
         if not sys.version.startswith('3.0'):
             self.assertEqual(b1, pickle.loads(p))
 
-        for proto in xrange(pickle.HIGHEST_PROTOCOL + 1):
+        for proto in range(pickle.HIGHEST_PROTOCOL + 1):
             self.assertEqual(b1, pickle.loads(pickle.dumps(b1, proto)))
 
         if should_test_uuid:
@@ -309,7 +309,7 @@ class TestBinary(unittest.TestCase):
             self.assertEqual(uul, copy.copy(uul))
             self.assertEqual(uul, copy.deepcopy(uul))
 
-            for proto in xrange(pickle.HIGHEST_PROTOCOL + 1):
+            for proto in range(pickle.HIGHEST_PROTOCOL + 1):
                 self.assertEqual(uul, pickle.loads(pickle.dumps(uul, proto)))
 
 

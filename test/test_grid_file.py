@@ -539,14 +539,11 @@ Bye"""))
             raise SkipTest("With statement requires Python >= 2.6")
 
         contents = b("Imagine this is some important data...")
-        # Hack around python2.4 an 2.5 not supporting 'with' syntax
-        exec """
-with GridIn(self.db.fs, filename="important") as infile:
-    infile.write(contents)
+        with GridIn(self.db.fs, filename="important") as infile:
+            infile.write(contents)
 
-with GridOut(self.db.fs, infile._id) as outfile:
-    self.assertEqual(contents, outfile.read())
-"""
+        with GridOut(self.db.fs, infile._id) as outfile:
+            self.assertEqual(contents, outfile.read())
 
     def test_prechunked_string(self):
 

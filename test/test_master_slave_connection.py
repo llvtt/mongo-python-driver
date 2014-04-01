@@ -391,7 +391,7 @@ class TestMasterSlaveConnection(unittest.TestCase, TestRequestMixin):
             -1,
             "Expected cursor connected to a slave, not master")
 
-        self.assertTrue(cursor.next())
+        self.assertTrue(next(cursor))
         self.assertNotEqual(0, cursor.cursor_id)
 
         cursor_id = cursor.cursor_id

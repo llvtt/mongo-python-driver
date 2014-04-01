@@ -25,6 +25,7 @@ class Iterator(object):
 
 if PY3:
     import codecs
+    from io import BytesIO as StringIO
 
     def b(s):
         # BSON and socket operations deal in binary data. In
@@ -46,12 +47,22 @@ if PY3:
     def iteritems(d):
         return d.items()
 
+    def reraise(exctype, value, trace=None):
+        if value.__traceback__ is not trace:
+            raise exctype(str(value)).with_traceback(trace)
+        raise exctype(str(value))
+
     binary_type = bytes
     long_type   = int
     text_type   = str
     next_item   = "__next__"
 
 else:
+    try:
+        from cStringIO import StringIO
+    except ImportError:
+        from StringIO import StringIO
+
     def b(s):
         # See comments above. In python 2.x b('foo') is just 'foo'.
         return s
@@ -64,6 +75,11 @@ else:
 
     def iteritems(d):
         return d.iteritems()
+
+    # "raise x, y, z" raises SyntaxError in Python 3
+    exec("""
+def reraise(exctype, value, trace=None):
+    raise exctype, value, trace""")
 
     binary_type = str
     # 2to3 will convert this to "str". That's okay
