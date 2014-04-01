@@ -174,7 +174,7 @@ class SON(dict):
 
     def popitem(self):
         try:
-            k, v = next(self.items())
+            k, v = next(iter(self.items()))
         except StopIteration:
             raise KeyError('container is empty')
         del self[k]

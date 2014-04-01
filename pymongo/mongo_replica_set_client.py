@@ -1246,7 +1246,7 @@ class MongoReplicaSetClient(common.BaseObject):
         if writer:
             response = members[writer].ismaster_response
         elif members:
-            response = next(members.values()).ismaster_response
+            response = next(iter(members.values())).ismaster_response
         else:
             response = {}
 

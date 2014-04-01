@@ -597,7 +597,7 @@ class GridOutIterator(Iterator):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         if self.__current_chunk >= self.__max_chunk:
             raise StopIteration
         chunk = self.__chunks.find_one({"files_id": self.__id,

@@ -280,7 +280,7 @@ class Database(common.BaseObject):
         if isinstance(command, string_types):
             command = SON([(command, value)])
 
-        command_name = next(command.keys()).lower()
+        command_name = next(iter(command.keys())).lower()
         must_use_master = kwargs.pop('_use_master', False)
         if command_name not in rp.secondary_ok_commands:
             must_use_master = True

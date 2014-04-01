@@ -338,7 +338,7 @@ class Cursor(Iterator):
             # by db.command or calling find_one on $cmd directly
             if self.collection.name == "$cmd":
                 # Don't change commands that can't be sent to secondaries
-                command_name = spec and next(spec.keys()).lower() or ""
+                command_name = spec and next(iter(spec.keys())).lower() or ""
                 if command_name not in secondary_ok_commands:
                     return spec
                 elif command_name == 'mapreduce':
@@ -365,7 +365,7 @@ class Cursor(Iterator):
         # Checking spec.keys()[0] covers the case that the spec
         # was passed as an instance of SON or OrderedDict.
         elif ("query" in self.__spec and
-              (len(self.__spec) == 1 or next(self.__spec.keys()) == "query")):
+              (len(self.__spec) == 1 or next(iter(self.__spec.keys())) == "query")):
             return SON({"$query": self.__spec})
 
         return self.__spec
