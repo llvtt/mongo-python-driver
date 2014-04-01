@@ -30,7 +30,7 @@ sys.path[0:0] = [""]
 import bson
 
 from bson.binary import *
-from bson.py3compat import b, binary_type
+from bson.py3compat import b, binary_type, u
 from bson.son import SON
 from nose.plugins.skip import SkipTest
 from test.test_client import get_client
@@ -47,7 +47,7 @@ class TestBinary(unittest.TestCase):
 
     def test_exceptions(self):
         self.assertRaises(TypeError, Binary, None)
-        self.assertRaises(TypeError, Binary, u"hello")
+        self.assertRaises(TypeError, Binary, u("hello"))
         self.assertRaises(TypeError, Binary, 5)
         self.assertRaises(TypeError, Binary, 10.2)
         self.assertRaises(TypeError, Binary, b("hello"), None)

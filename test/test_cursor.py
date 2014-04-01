@@ -24,7 +24,7 @@ sys.path[0:0] = [""]
 from nose.plugins.skip import SkipTest
 
 from bson.code import Code
-from bson.py3compat import long_type
+from bson.py3compat import u, long_type
 from bson.son import SON
 from pymongo import (ASCENDING,
                      DESCENDING,
@@ -516,7 +516,7 @@ class TestCursor(unittest.TestCase):
 
         self.assertEqual(3, db.test.find().where('this.x < 3').count())
         self.assertEqual(10, db.test.find().count())
-        self.assertEqual(3, db.test.find().where(u'this.x < 3').count())
+        self.assertEqual(3, db.test.find().where(u('this.x < 3')).count())
         self.assertEqual([0, 1, 2],
                          [a["x"] for a in
                           db.test.find().where('this.x < 3')])

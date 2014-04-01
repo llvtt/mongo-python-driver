@@ -24,6 +24,7 @@ sys.path[0:0] = [""]
 
 from nose.plugins.skip import SkipTest
 
+from bson.py3compat import u
 from bson.son import SON
 from bson.tz_util import utc
 from pymongo import ReadPreference, thread_util
@@ -197,8 +198,8 @@ class TestMasterSlaveConnection(unittest.TestCase, TestRequestMixin):
                                                         "test"))
 
     def test_database_names(self):
-        self.client.pymongo_test.test.save({"dummy": u"object"})
-        self.client.pymongo_test_mike.test.save({"dummy": u"object"})
+        self.client.pymongo_test.test.save({"dummy": u("object")})
+        self.client.pymongo_test_mike.test.save({"dummy": u("object")})
 
         dbs = self.client.database_names()
         self.assertTrue("pymongo_test" in dbs)
@@ -210,14 +211,14 @@ class TestMasterSlaveConnection(unittest.TestCase, TestRequestMixin):
 
         raise SkipTest("This test often fails due to SERVER-2329")
 
-        self.client.pymongo_test.test.save({"dummy": u"object"})
+        self.client.pymongo_test.test.save({"dummy": u("object")})
         dbs = self.client.database_names()
         self.assertTrue("pymongo_test" in dbs)
         self.client.drop_database("pymongo_test")
         dbs = self.client.database_names()
         self.assertTrue("pymongo_test" not in dbs)
 
-        self.client.pymongo_test.test.save({"dummy": u"object"})
+        self.client.pymongo_test.test.save({"dummy": u("object")})
         dbs = self.client.database_names()
         self.assertTrue("pymongo_test" in dbs)
         self.client.drop_database(self.client.pymongo_test)

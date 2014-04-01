@@ -25,7 +25,7 @@ sys.path[0:0] = [""]
 from nose.plugins.skip import SkipTest
 
 from bson.objectid import ObjectId
-from bson.py3compat import b, StringIO
+from bson.py3compat import b, u, StringIO
 from gridfs import GridFS
 from gridfs.grid_file import (DEFAULT_CHUNK_SIZE,
                               _SEEK_CUR,
@@ -483,21 +483,21 @@ Bye"""))
 
     def test_write_unicode(self):
         f = GridIn(self.db.fs)
-        self.assertRaises(TypeError, f.write, u"foo")
+        self.assertRaises(TypeError, f.write, u("foo"))
 
         f = GridIn(self.db.fs, encoding="utf-8")
-        f.write(u"foo")
+        f.write(u("foo"))
         f.close()
 
         g = GridOut(self.db.fs, f._id)
         self.assertEqual(b("foo"), g.read())
 
         f = GridIn(self.db.fs, encoding="iso-8859-1")
-        f.write(u"aé")
+        f.write(u("aé"))
         f.close()
 
         g = GridOut(self.db.fs, f._id)
-        self.assertEqual(u"aé".encode("iso-8859-1"), g.read())
+        self.assertEqual(u("aé").encode("iso-8859-1"), g.read())
 
     def test_set_after_close(self):
         f = GridIn(self.db.fs, _id="foo", bar="baz")

@@ -21,9 +21,9 @@ import warnings
 from bson.code import Code
 from bson.objectid import ObjectId
 from bson.py3compat import (Iterator,
+                            _unicode,
                             string_types,
-                            integer_types,
-                            u)
+                            integer_types)
 from bson.son import SON
 from pymongo import (bulk,
                      common,
@@ -118,7 +118,7 @@ class Collection(common.BaseObject, Iterator):
                               "null character")
 
         self.__database = database
-        self.__name = u(name)
+        self.__name = _unicode(name)
         self.__full_name = "%s.%s" % (self.__database.name, self.__name)
         if create or kwargs:
             self.__create(kwargs)

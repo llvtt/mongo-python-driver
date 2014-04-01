@@ -33,7 +33,7 @@ except ImportError:
     HAVE_KERBEROS = False
 
 from bson.binary import Binary
-from bson.py3compat import b, u, string_types
+from bson.py3compat import b, string_types, _unicode
 from bson.son import SON
 from pymongo.errors import ConfigurationError, OperationFailure
 
@@ -67,7 +67,7 @@ def _password_digest(username, password):
     md5hash = _MD5()
     data = "%s:mongo:%s" % (username, password)
     md5hash.update(data.encode('utf-8'))
-    return u(md5hash.hexdigest())
+    return _unicode(md5hash.hexdigest())
 
 
 def _auth_key(nonce, username, password):
@@ -75,9 +75,9 @@ def _auth_key(nonce, username, password):
     """
     digest = _password_digest(username, password)
     md5hash = _MD5()
-    data = "%s%s%s" % (nonce, u(username), digest)
+    data = "%s%s%s" % (nonce, _unicode(username), digest)
     md5hash.update(data.encode('utf-8'))
-    return u(md5hash.hexdigest())
+    return _unicode(md5hash.hexdigest())
 
 
 def _authenticate_gssapi(credentials, sock_info, cmd_func):

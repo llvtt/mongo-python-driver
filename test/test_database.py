@@ -29,7 +29,7 @@ from bson.code import Code
 from bson.regex import Regex
 from bson.dbref import DBRef
 from bson.objectid import ObjectId
-from bson.py3compat import string_types, long_type, text_type
+from bson.py3compat import u, string_types, long_type, text_type
 from bson.son import SON, RE_TYPE
 from pymongo import (ALL,
                      auth,
@@ -66,7 +66,7 @@ class TestDatabase(unittest.TestCase):
         self.assertRaises(InvalidName, Database, self.client, "my db")
         self.assertRaises(InvalidName, Database, self.client, "my\x00db")
         self.assertRaises(InvalidName, Database,
-                          self.client, u"my\u0000db")
+                          self.client, u("my\u0000db"))
         self.assertEqual("name", Database(self.client, "name").name)
 
     def test_equality(self):
@@ -82,7 +82,7 @@ class TestDatabase(unittest.TestCase):
     def test_repr(self):
         self.assertEqual(repr(Database(self.client, "pymongo_test")),
                          "Database(%r, %s)" % (self.client,
-                                               repr(u"pymongo_test")))
+                                               repr(u("pymongo_test"))))
 
     def test_get_coll(self):
         db = Database(self.client, "pymongo_test")
@@ -104,20 +104,20 @@ class TestDatabase(unittest.TestCase):
         self.assertRaises(InvalidName, db.create_collection, "coll..ection")
 
         test = db.create_collection("test")
-        test.save({"hello": u"world"})
+        test.save({"hello": u("world")})
         self.assertEqual(db.test.find_one()["hello"], "world")
-        self.assertTrue(u"test" in db.collection_names())
+        self.assertTrue(u("test") in db.collection_names())
 
         db.drop_collection("test.foo")
         db.create_collection("test.foo")
-        self.assertTrue(u"test.foo" in db.collection_names())
+        self.assertTrue(u("test.foo") in db.collection_names())
         self.assertEqual(db.test.foo.options(), {})
         self.assertRaises(CollectionInvalid, db.create_collection, "test.foo")
 
     def test_collection_names(self):
         db = Database(self.client, "pymongo_test")
-        db.test.save({"dummy": u"object"})
-        db.test.mike.save({"dummy": u"object"})
+        db.test.save({"dummy": u("object")})
+        db.test.mike.save({"dummy": u("object")})
 
         colls = db.collection_names()
         self.assertTrue("test" in colls)
@@ -135,22 +135,22 @@ class TestDatabase(unittest.TestCase):
         self.assertRaises(TypeError, db.drop_collection, 5)
         self.assertRaises(TypeError, db.drop_collection, None)
 
-        db.test.save({"dummy": u"object"})
+        db.test.save({"dummy": u("object")})
         self.assertTrue("test" in db.collection_names())
         db.drop_collection("test")
         self.assertFalse("test" in db.collection_names())
 
-        db.test.save({"dummy": u"object"})
+        db.test.save({"dummy": u("object")})
         self.assertTrue("test" in db.collection_names())
-        db.drop_collection(u"test")
+        db.drop_collection(u("test"))
         self.assertFalse("test" in db.collection_names())
 
-        db.test.save({"dummy": u"object"})
+        db.test.save({"dummy": u("object")})
         self.assertTrue("test" in db.collection_names())
         db.drop_collection(db.test)
         self.assertFalse("test" in db.collection_names())
 
-        db.test.save({"dummy": u"object"})
+        db.test.save({"dummy": u("object")})
         self.assertTrue("test" in db.collection_names())
         db.test.drop()
         self.assertFalse("test" in db.collection_names())
@@ -164,7 +164,7 @@ class TestDatabase(unittest.TestCase):
         self.assertRaises(TypeError, db.validate_collection, 5)
         self.assertRaises(TypeError, db.validate_collection, None)
 
-        db.test.save({"dummy": u"object"})
+        db.test.save({"dummy": u("object")})
 
         self.assertRaises(OperationFailure, db.validate_collection,
                           "test.doesnotexist")
@@ -345,11 +345,11 @@ class TestDatabase(unittest.TestCase):
         self.assertTrue(isinstance(auth._password_digest("mike", "password"),
                                    text_type))
         self.assertEqual(auth._password_digest("mike", "password"),
-                         u"cd7e45b3b2767dc2fa9b6b548457ed00")
+                         u("cd7e45b3b2767dc2fa9b6b548457ed00"))
         self.assertEqual(auth._password_digest("mike", "password"),
-                         auth._password_digest(u"mike", u"password"))
-        self.assertEqual(auth._password_digest("Gustave", u"Dor\xe9"),
-                         u"81e0e2364499209f466e75926a162d73")
+                         auth._password_digest(u("mike"), u("password")))
+        self.assertEqual(auth._password_digest("Gustave", u("Dor\xe9")),
+                         u("81e0e2364499209f466e75926a162d73"))
 
     def test_authenticate_add_remove_user(self):
         if (is_mongos(self.client) and not
@@ -396,7 +396,7 @@ class TestDatabase(unittest.TestCase):
                               db.authenticate, "faker", "password")
             self.assertTrue(db.authenticate("mike", "password"))
             db.logout()
-            self.assertTrue(db.authenticate(u"mike", u"password"))
+            self.assertTrue(db.authenticate(u("mike"), u("password")))
             db.remove_user("mike")
             db.logout()
 
@@ -405,20 +405,20 @@ class TestDatabase(unittest.TestCase):
 
             # Add / authenticate / change password
             self.assertRaises(OperationFailure,
-                              db.authenticate, "Gustave", u"Dor\xe9")
-            db.add_user("Gustave", u"Dor\xe9")
-            self.assertTrue(db.authenticate("Gustave", u"Dor\xe9"))
+                              db.authenticate, "Gustave", u("Dor\xe9"))
+            db.add_user("Gustave", u("Dor\xe9"))
+            self.assertTrue(db.authenticate("Gustave", u("Dor\xe9")))
             db.add_user("Gustave", "password")
             db.logout()
             self.assertRaises(OperationFailure,
-                              db.authenticate, "Gustave", u"Dor\xe9")
-            self.assertTrue(db.authenticate("Gustave", u"password"))
+                              db.authenticate, "Gustave", u("Dor\xe9"))
+            self.assertTrue(db.authenticate("Gustave", u("password")))
 
             if not version.at_least(self.client, (2, 5, 3, -1)):
                 # Add a readOnly user
                 db.add_user("Ross", "password", read_only=True)
                 db.logout()
-                self.assertTrue(db.authenticate("Ross", u"password"))
+                self.assertTrue(db.authenticate("Ross", u("password")))
                 self.assertTrue(db.system.users.find({"readOnly": True}).count())
                 db.logout()
 
@@ -713,7 +713,7 @@ class TestDatabase(unittest.TestCase):
         self.assertRaises(TypeError, db.eval, [])
 
         self.assertEqual(3, db.eval("function (x) {return x;}", 3))
-        self.assertEqual(3, db.eval(u"function (x) {return x;}", 3))
+        self.assertEqual(3, db.eval(u("function (x) {return x;}"), 3))
 
         self.assertEqual(None,
                          db.eval("function (x) {db.test.save({y:x});}", 5))
@@ -735,18 +735,18 @@ class TestDatabase(unittest.TestCase):
         db = Database(self.client, "pymongo_test")
         db.test.remove({})
 
-        a_doc = SON({"hello": u"world"})
+        a_doc = SON({"hello": u("world")})
         a_key = db.test.save(a_doc)
         self.assertTrue(isinstance(a_doc["_id"], ObjectId))
         self.assertEqual(a_doc["_id"], a_key)
         self.assertEqual(a_doc, db.test.find_one({"_id": a_doc["_id"]}))
         self.assertEqual(a_doc, db.test.find_one(a_key))
         self.assertEqual(None, db.test.find_one(ObjectId()))
-        self.assertEqual(a_doc, db.test.find_one({"hello": u"world"}))
-        self.assertEqual(None, db.test.find_one({"hello": u"test"}))
+        self.assertEqual(a_doc, db.test.find_one({"hello": u("world")}))
+        self.assertEqual(None, db.test.find_one({"hello": u("test")}))
 
         b = db.test.find_one()
-        b["hello"] = u"mike"
+        b["hello"] = u("mike")
         db.test.save(b)
 
         self.assertNotEqual(a_doc, db.test.find_one(a_key))
@@ -825,7 +825,7 @@ class TestDatabase(unittest.TestCase):
         db.test.b.remove({})
         db.test.c.remove({})
 
-        a = {"hello": u"world"}
+        a = {"hello": u("world")}
         db.test.a.save(a)
 
         b = {"test": a}

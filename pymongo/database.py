@@ -19,7 +19,7 @@ import warnings
 from bson.binary import OLD_UUID_SUBTYPE
 from bson.code import Code
 from bson.dbref import DBRef
-from bson.py3compat import string_types, u
+from bson.py3compat import string_types, _unicode
 from bson.son import SON
 from pymongo import auth, common, helpers
 from pymongo.collection import Collection
@@ -76,7 +76,7 @@ class Database(common.BaseObject):
         if name != '$external':
             _check_name(name)
 
-        self.__name = u(name)
+        self.__name = _unicode(name)
         self.__connection = connection
 
         self.__incoming_manipulators = []
@@ -465,7 +465,7 @@ class Database(common.BaseObject):
 
         self.__connection._purge_index(self.__name, name)
 
-        self.command("drop", u(name), allowable_errors=["ns not found"])
+        self.command("drop", _unicode(name), allowable_errors=["ns not found"])
 
     def validate_collection(self, name_or_collection,
                             scandata=False, full=False):
@@ -501,7 +501,7 @@ class Database(common.BaseObject):
         if not isinstance(name, string_types):
             raise TypeError("name_or_collection must be a string type")
 
-        result = self.command("validate", u(name),
+        result = self.command("validate", _unicode(name),
                               scandata=scandata, full=full)
 
         valid = True
@@ -858,10 +858,12 @@ class Database(common.BaseObject):
             normalized, val = common.validate_auth_option(option, value)
             validated_options[normalized] = val
 
-        credentials = auth._build_credentials_tuple(mechanism,
-                                source or self.name, u(name),
-                                password and u(password) or None,
-                                validated_options)
+        credentials = auth._build_credentials_tuple(
+            mechanism,
+            source or self.name, _unicode(name),
+            password and _unicode(password) or None,
+            validated_options
+        )
         self.connection._cache_credentials(self.name, credentials)
         return True
 

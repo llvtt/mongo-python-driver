@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright 2009-2014 MongoDB, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you
@@ -37,8 +38,11 @@ if PY3:
         # See http://python3porting.com/problems.html#nicer-solutions
         return codecs.latin_1_encode(s)[0]
 
+    def _unicode(s):
+        '''Strings are unicode by default in python 3'''
+        return s
+
     def u(s):
-        '''No need for unicode conversion in python 3'''
         return s
 
     def bytes_from_hex(h):
@@ -48,9 +52,7 @@ if PY3:
         return d.items()
 
     def reraise(exctype, value, trace=None):
-        if value.__traceback__ is not trace:
-            raise exctype(str(value)).with_traceback(trace)
-        raise exctype(str(value))
+        raise exctype(str(value)).with_traceback(trace)
 
     binary_type = bytes
     long_type   = int
@@ -67,8 +69,20 @@ else:
         # See comments above. In python 2.x b('foo') is just 'foo'.
         return s
 
-    def u(s):
+    import codecs
+
+    def _unicode(s):
+        '''Replace builtin unicode function'''
         return unicode(s)
+
+    def u(s):
+        '''replacement for unicode literal prefix'''
+        try:
+            # s is valid UTF8: "W∞høô¡"
+            return unicode(s, 'utf8')
+        except ValueError:
+            # s contains \x[0-9][0-9] escape codes: "revoluci\xf3n"
+            return unicode(s.replace(r'\\', r'\\\\'), 'unicode_escape')
 
     def bytes_from_hex(h):
         return h.decode('hex')
@@ -79,7 +93,7 @@ else:
     # "raise x, y, z" raises SyntaxError in Python 3
     exec("""
 def reraise(exctype, value, trace=None):
-    raise exctype, value, trace""")
+    raise exctype, str(value), trace""")
 
     binary_type = str
     # 2to3 will convert this to "str". That's okay

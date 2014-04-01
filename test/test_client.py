@@ -32,6 +32,7 @@ sys.path[0:0] = [""]
 
 from nose.plugins.skip import SkipTest
 
+from bson.py3compat import u
 from bson.son import SON
 from bson.tz_util import utc
 from pymongo.mongo_client import MongoClient
@@ -193,8 +194,8 @@ class TestClient(unittest.TestCase, TestRequestMixin):
     def test_database_names(self):
         client = MongoClient(host, port)
 
-        client.pymongo_test.test.save({"dummy": u"object"})
-        client.pymongo_test_mike.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
+        client.pymongo_test_mike.test.save({"dummy": u("object")})
 
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)
@@ -208,14 +209,14 @@ class TestClient(unittest.TestCase, TestRequestMixin):
 
         raise SkipTest("This test often fails due to SERVER-2329")
 
-        client.pymongo_test.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)
         client.drop_database("pymongo_test")
         dbs = client.database_names()
         self.assertTrue("pymongo_test" not in dbs)
 
-        client.pymongo_test.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)
         client.drop_database(client.pymongo_test)
@@ -610,8 +611,8 @@ class TestClient(unittest.TestCase, TestRequestMixin):
         MongoClient("[::1]:%d,localhost:%d" % (port, port))
 
         client = MongoClient("localhost:%d,[::1]:%d" % (port, port))
-        client.pymongo_test.test.save({"dummy": u"object"})
-        client.pymongo_test_bernie.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
+        client.pymongo_test_bernie.test.save({"dummy": u("object")})
 
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)

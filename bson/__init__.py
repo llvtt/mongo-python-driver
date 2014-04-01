@@ -356,6 +356,12 @@ def _element_to_bson(key, value, check_keys, uuid_subtype):
     if not isinstance(key, string_types):
         raise InvalidDocument("documents must have only string keys, "
                               "key was %r" % key)
+    # 'bytes' is a string_type in python 3. It encodes to a BSON
+    # binary type when used as the value in a BSON element, but
+    # shouldn't be allowed as a key, either.
+    if PY3 and isinstance(key, bytes):
+        raise InvalidDocument("documents must have only string keys, "
+                              "key was %r" % key)
 
     if check_keys:
         if key.startswith("$"):

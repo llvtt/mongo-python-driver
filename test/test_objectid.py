@@ -25,7 +25,7 @@ from nose.plugins.skip import SkipTest
 
 from bson.errors import InvalidId
 from bson.objectid import ObjectId
-from bson.py3compat import b, binary_type, u
+from bson.py3compat import b, u, _unicode
 from bson.tz_util import (FixedOffset,
                           utc)
 
@@ -52,15 +52,15 @@ class TestObjectId(unittest.TestCase):
 
     def test_unicode(self):
         a = ObjectId()
-        self.assertEqual(a, ObjectId(u(a)))
+        self.assertEqual(a, ObjectId(_unicode(a)))
         self.assertEqual(ObjectId("123456789012123456789012"),
-                         ObjectId(u"123456789012123456789012"))
-        self.assertRaises(InvalidId, ObjectId, u"hello")
+                         ObjectId(u("123456789012123456789012")))
+        self.assertRaises(InvalidId, ObjectId, u("hello"))
 
     def test_from_hex(self):
         ObjectId("123456789012123456789012")
         self.assertRaises(InvalidId, ObjectId, "123456789012123456789G12")
-        self.assertRaises(InvalidId, ObjectId, u"123456789012123456789G12")
+        self.assertRaises(InvalidId, ObjectId, u("123456789012123456789G12"))
 
     def test_repr_str(self):
         self.assertEqual(repr(ObjectId("1234567890abcdef12345678")),

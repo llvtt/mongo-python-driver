@@ -33,7 +33,7 @@ from bson.regex import Regex
 from bson.code import Code
 from bson.dbref import DBRef
 from bson.objectid import ObjectId
-from bson.py3compat import b
+from bson.py3compat import b, u
 from bson.son import SON, RE_TYPE
 from pymongo import (ASCENDING, DESCENDING, GEO2D,
                      GEOHAYSTACK, GEOSPHERE, HASHED)
@@ -120,7 +120,7 @@ class TestCollection(unittest.TestCase):
 
         db.test.drop_indexes()
         db.test.insert({})
-        self.assertEqual(db.system.indexes.find({"ns": u"pymongo_test.test"})
+        self.assertEqual(db.system.indexes.find({"ns": u("pymongo_test.test")})
                          .count(), 1)
 
         db.test.create_index("hello")
@@ -130,7 +130,7 @@ class TestCollection(unittest.TestCase):
         db.test.create_index((("world", ASCENDING),))
 
         count = 0
-        for _ in db.system.indexes.find({"ns": u"pymongo_test.test"}):
+        for _ in db.system.indexes.find({"ns": u("pymongo_test.test")}):
             count += 1
         self.assertEqual(count, 4)
 
@@ -140,20 +140,20 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(ix, "hello_world")
 
         db.test.drop_indexes()
-        self.assertEqual(db.system.indexes.find({"ns": u"pymongo_test.test"})
+        self.assertEqual(db.system.indexes.find({"ns": u("pymongo_test.test")})
                          .count(), 1)
         db.test.create_index("hello")
-        self.assertTrue(u"hello_1" in
+        self.assertTrue(u("hello_1") in
                         [a["name"] for a in db.system.indexes
-                         .find({"ns": u"pymongo_test.test"})])
+                         .find({"ns": u("pymongo_test.test")})])
 
         db.test.drop_indexes()
-        self.assertEqual(db.system.indexes.find({"ns": u"pymongo_test.test"})
+        self.assertEqual(db.system.indexes.find({"ns": u("pymongo_test.test")})
                          .count(), 1)
         db.test.create_index([("hello", DESCENDING), ("world", ASCENDING)])
-        self.assertTrue(u"hello_-1_world_1" in
+        self.assertTrue(u("hello_-1_world_1") in
                         [a["name"] for a in db.system.indexes
-                         .find({"ns": u"pymongo_test.test"})])
+                         .find({"ns": u("pymongo_test.test")})])
 
         db.test.drop()
         db.test.insert({'a': 1})
@@ -289,29 +289,29 @@ class TestCollection(unittest.TestCase):
         db.test.create_index("hello")
         name = db.test.create_index("goodbye")
 
-        self.assertEqual(db.system.indexes.find({"ns": u"pymongo_test.test"})
+        self.assertEqual(db.system.indexes.find({"ns": u("pymongo_test.test")})
                          .count(), 3)
         self.assertEqual(name, "goodbye_1")
         db.test.drop_index(name)
-        self.assertEqual(db.system.indexes.find({"ns": u"pymongo_test.test"})
+        self.assertEqual(db.system.indexes.find({"ns": u("pymongo_test.test")})
                          .count(), 2)
-        self.assertTrue(u"hello_1" in
+        self.assertTrue(u("hello_1") in
                         [a["name"] for a in db.system.indexes
-                         .find({"ns": u"pymongo_test.test"})])
+                         .find({"ns": u("pymongo_test.test")})])
 
         db.test.drop_indexes()
         db.test.create_index("hello")
         name = db.test.create_index("goodbye")
 
-        self.assertEqual(db.system.indexes.find({"ns": u"pymongo_test.test"})
+        self.assertEqual(db.system.indexes.find({"ns": u("pymongo_test.test")})
                          .count(), 3)
         self.assertEqual(name, "goodbye_1")
         db.test.drop_index([("goodbye", ASCENDING)])
-        self.assertEqual(db.system.indexes.find({"ns": u"pymongo_test.test"})
+        self.assertEqual(db.system.indexes.find({"ns": u("pymongo_test.test")})
                          .count(), 2)
-        self.assertTrue(u"hello_1" in
+        self.assertTrue(u("hello_1") in
                         [a["name"] for a in db.system.indexes
-                         .find({"ns": u"pymongo_test.test"})])
+                         .find({"ns": u("pymongo_test.test")})])
 
     def test_reindex(self):
         db = self.db
@@ -617,7 +617,7 @@ class TestCollection(unittest.TestCase):
         db = self.db
         db.test.remove({})
         self.assertEqual(0, len(list(db.test.find())))
-        doc = {"hello": u"world"}
+        doc = {"hello": u("world")}
         id = db.test.insert(doc)
         self.assertEqual(1, len(list(db.test.find())))
         self.assertEqual(doc, db.test.find_one())
@@ -752,7 +752,7 @@ class TestCollection(unittest.TestCase):
         self.assertEqual(object["_id"], numeric)
 
         for x in db.test.find():
-            self.assertEqual(x["hello"], u"world")
+            self.assertEqual(x["hello"], u("world"))
             self.assertTrue("_id" in x)
 
     def test_iteration(self):
@@ -793,13 +793,13 @@ class TestCollection(unittest.TestCase):
     def test_insert_multiple(self):
         db = self.db
         db.drop_collection("test")
-        doc1 = {"hello": u"world"}
-        doc2 = {"hello": u"mike"}
+        doc1 = {"hello": u("world")}
+        doc2 = {"hello": u("mike")}
         self.assertEqual(db.test.find().count(), 0)
         ids = db.test.insert([doc1, doc2])
         self.assertEqual(db.test.find().count(), 2)
-        self.assertEqual(doc1, db.test.find_one({"hello": u"world"}))
-        self.assertEqual(doc2, db.test.find_one({"hello": u"mike"}))
+        self.assertEqual(doc1, db.test.find_one({"hello": u("world")}))
+        self.assertEqual(doc2, db.test.find_one({"hello": u("mike")}))
 
         self.assertEqual(2, len(ids))
         self.assertEqual(doc1["_id"], ids[0])
@@ -867,7 +867,7 @@ class TestCollection(unittest.TestCase):
 
         db.drop_collection("test")
         self.assertEqual(db.test.find().count(), 0)
-        ids = db.test.insert(({"hello": u"world"}, {"hello": u"world"}))
+        ids = db.test.insert(({"hello": u("world")}, {"hello": u("world")}))
         self.assertEqual(db.test.find().count(), 2)
 
         db.drop_collection("test")
@@ -2064,11 +2064,11 @@ class TestCollection(unittest.TestCase):
     def test_messages_with_unicode_collection_names(self):
         db = self.db
 
-        db[u"Employés"].insert({"x": 1})
-        db[u"Employés"].update({"x": 1}, {"x": 2})
-        db[u"Employés"].remove({})
-        db[u"Employés"].find_one()
-        list(db[u"Employés"].find())
+        db[u("Employés")].insert({"x": 1})
+        db[u("Employés")].update({"x": 1}, {"x": 2})
+        db[u("Employés")].remove({})
+        db[u("Employés")].find_one()
+        list(db[u("Employés")].find())
 
     def test_drop_indexes_non_existant(self):
         self.db.drop_collection("test")

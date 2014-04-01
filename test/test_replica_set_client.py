@@ -35,7 +35,7 @@ sys.path[0:0] = [""]
 
 from nose.plugins.skip import SkipTest
 
-from bson.py3compat import u, PY3
+from bson.py3compat import u, _unicode
 from bson.son import SON
 from bson.tz_util import utc
 from pymongo.mongo_client import MongoClient
@@ -227,7 +227,7 @@ class TestReplicaSetClient(TestReplicaSetClientBase, TestRequestMixin):
         host_dict = dict([(host, 1) for host in self.hosts])
         hosts_set = frozenset(host_dict)
         hosts_repr = ', '.join([
-            repr(u('%s:%s' % host)) for host in hosts_set])
+            repr(_unicode('%s:%s' % host)) for host in hosts_set])
 
         self.assertEqual(repr(client),
                          "MongoReplicaSetClient([%s])" % hosts_repr)
@@ -402,8 +402,8 @@ class TestReplicaSetClient(TestReplicaSetClientBase, TestRequestMixin):
     def test_database_names(self):
         client = self._get_client()
 
-        client.pymongo_test.test.save({"dummy": u"object"})
-        client.pymongo_test_mike.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
+        client.pymongo_test_mike.test.save({"dummy": u("object")})
 
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)
@@ -416,14 +416,14 @@ class TestReplicaSetClient(TestReplicaSetClientBase, TestRequestMixin):
         self.assertRaises(TypeError, client.drop_database, 5)
         self.assertRaises(TypeError, client.drop_database, None)
 
-        client.pymongo_test.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)
         client.drop_database("pymongo_test")
         dbs = client.database_names()
         self.assertTrue("pymongo_test" not in dbs)
 
-        client.pymongo_test.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)
         client.drop_database(client.pymongo_test)
@@ -791,8 +791,8 @@ class TestReplicaSetClient(TestReplicaSetClientBase, TestRequestMixin):
         client = MongoReplicaSetClient("localhost:%d,[::1]:"
                                           "%d" % (port, port),
                                           replicaSet=self.name)
-        client.pymongo_test.test.save({"dummy": u"object"})
-        client.pymongo_test_bernie.test.save({"dummy": u"object"})
+        client.pymongo_test.test.save({"dummy": u("object")})
+        client.pymongo_test_bernie.test.save({"dummy": u("object")})
 
         dbs = client.database_names()
         self.assertTrue("pymongo_test" in dbs)

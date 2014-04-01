@@ -42,7 +42,7 @@ import threading
 import time
 import warnings
 
-from bson.py3compat import b, u, integer_types, string_types
+from bson.py3compat import b, _unicode, integer_types, string_types
 from pymongo import (auth,
                      common,
                      database,
@@ -375,8 +375,8 @@ class MongoClient(common.BaseObject):
 
             credentials = auth._build_credentials_tuple(mechanism,
                                                         source,
-                                                        u(username),
-                                                        u(password),
+                                                        _unicode(username),
+                                                        _unicode(password),
                                                         options)
             try:
                 self._cache_credentials(source, credentials, _connect)
