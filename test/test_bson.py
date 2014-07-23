@@ -51,9 +51,90 @@ if PY3:
     long = int
 
 
+class NotADict(object):
+    """Non-dict type that implements the mapping protocol."""
+
+    def __init__(self, initial):
+        self._dict = initial
+
+    def __contains__(self, item):
+        return item in self._dict
+
+    def __iter__(self):
+        return iter(self._dict)
+
+    def items(self):
+        return self._dict.items()
+
+    def iteritems(self):
+        return iteritems(self._dict)
+
+    def __getitem__(self, item):
+        return self._dict[item]
+
+    def __len__(self):
+        return len(self._dict)
+
+    def __eq__(self, other):
+        return self._dict == other
+
+
 class TestBSON(unittest.TestCase):
     def assertInvalid(self, data):
         self.assertRaises(InvalidBSON, bson.BSON(data).decode)
+
+    def encode_then_decode_checks(self, dict_klass=dict):
+
+        def helper(dict):
+            self.assertEqual(dict, (BSON.encode(dict_klass(dict))).decode())
+        helper({})
+        helper({"test": u("hello")})
+        self.assertTrue(isinstance(BSON.encode({"hello": "world"})
+                                   .decode()["hello"],
+                                   text_type))
+        helper({"mike": -10120})
+        helper({"long": BSONInt64(10)})
+        helper({"really big long": 2147483648})
+        helper({u("hello"): 0.0013109})
+        helper({"something": True})
+        helper({"false": False})
+        helper({"an array": [1, True, 3.8, u("world")]})
+        helper({"an object": dict_klass({"test": u("something")})})
+        helper({"a binary": Binary(b"test", 100)})
+        helper({"a binary": Binary(b"test", 128)})
+        helper({"a binary": Binary(b"test", 254)})
+        helper({"another binary": Binary(b"test", 2)})
+        helper(SON([(u('test dst'), datetime.datetime(1993, 4, 4, 2))]))
+        helper(SON([(u('test negative dst'),
+                     datetime.datetime(1, 1, 1, 1, 1, 1))]))
+        helper({"big float": float(10000000000)})
+        helper({"ref": DBRef("coll", 5)})
+        helper({"ref": DBRef("coll", 5, foo="bar", bar=4)})
+        helper({"ref": DBRef("coll", 5, "foo")})
+        helper({"ref": DBRef("coll", 5, "foo", foo="bar")})
+        helper({"ref": Timestamp(1, 2)})
+        helper({"foo": MinKey()})
+        helper({"foo": MaxKey()})
+        helper({"$field": Code("function(){ return true; }")})
+        helper({"$field": Code("return function(){ return x; }", scope={'x': False})})
+
+        doc_class = dict
+        # Work around http://bugs.jython.org/issue1728
+        if (sys.platform.startswith('java') and
+            sys.version_info[:3] >= (2, 5, 2)):
+            doc_class = SON
+
+        def encode_then_decode(doc):
+            return doc == (BSON.encode(doc)).decode(as_class=doc_class)
+
+        qcheck.check_unittest(self, encode_then_decode,
+                              qcheck.gen_mongo_dict(3))
+
+    def test_encode_then_decode(self):
+        self.encode_then_decode_checks()
+
+    def test_encode_any_map(self):
+        self.encode_then_decode_checks(dict_klass=NotADict)
 
     def test_basic_validation(self):
         self.assertRaises(TypeError, is_valid, 100)
@@ -227,53 +308,6 @@ class TestBSON(unittest.TestCase):
                          b"$ref\x00\x05\x00\x00\x00coll\x00\x07$id\x00\x00"
                          b"\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x00"
                          b"\x00")
-
-    def test_encode_then_decode(self):
-
-        def helper(dict):
-            self.assertEqual(dict, (BSON.encode(dict)).decode())
-        helper({})
-        helper({"test": u("hello")})
-        self.assertTrue(isinstance(BSON.encode({"hello": "world"})
-                                   .decode()["hello"],
-                                   text_type))
-        helper({"mike": -10120})
-        helper({"long": BSONInt64(10)})
-        helper({"really big long": 2147483648})
-        helper({u("hello"): 0.0013109})
-        helper({"something": True})
-        helper({"false": False})
-        helper({"an array": [1, True, 3.8, u("world")]})
-        helper({"an object": {"test": u("something")}})
-        helper({"a binary": Binary(b"test", 100)})
-        helper({"a binary": Binary(b"test", 128)})
-        helper({"a binary": Binary(b"test", 254)})
-        helper({"another binary": Binary(b"test", 2)})
-        helper(SON([(u('test dst'), datetime.datetime(1993, 4, 4, 2))]))
-        helper(SON([(u('test negative dst'),
-                     datetime.datetime(1, 1, 1, 1, 1, 1))]))
-        helper({"big float": float(10000000000)})
-        helper({"ref": DBRef("coll", 5)})
-        helper({"ref": DBRef("coll", 5, foo="bar", bar=4)})
-        helper({"ref": DBRef("coll", 5, "foo")})
-        helper({"ref": DBRef("coll", 5, "foo", foo="bar")})
-        helper({"ref": Timestamp(1, 2)})
-        helper({"foo": MinKey()})
-        helper({"foo": MaxKey()})
-        helper({"$field": Code("function(){ return true; }")})
-        helper({"$field": Code("return function(){ return x; }", scope={'x': False})})
-
-        doc_class = dict
-        # Work around http://bugs.jython.org/issue1728
-        if (sys.platform.startswith('java') and
-            sys.version_info[:3] >= (2, 5, 2)):
-            doc_class = SON
-
-        def encode_then_decode(doc):
-            return doc == (BSON.encode(doc)).decode(as_class=doc_class)
-
-        qcheck.check_unittest(self, encode_then_decode,
-                              qcheck.gen_mongo_dict(3))
 
     def test_dbpointer(self):
         # *Note* - DBPointer and DBRef are *not* the same thing. DBPointer

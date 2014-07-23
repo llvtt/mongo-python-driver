@@ -870,7 +870,7 @@ static int _write_element_to_buffer(PyObject* self, buffer_t buffer,
     } else if (value == Py_None) {
         *(buffer_get_buffer(buffer) + type_byte) = 0x0A;
         return 1;
-    } else if (PyDict_Check(value)) {
+    } else if (PyMapping_Check(value)) {
         *(buffer_get_buffer(buffer) + type_byte) = 0x03;
         return write_dict(self, buffer, value, check_keys, uuid_subtype, 0);
     } else if (PyList_Check(value) || PyTuple_Check(value)) {
@@ -1306,7 +1306,7 @@ int write_dict(PyObject* self, buffer_t buffer,
     int length;
     int length_location;
 
-    if (!PyDict_Check(dict)) {
+    if (!PyMapping_Check(dict)) {
         PyObject* repr = PyObject_Repr(dict);
         if (repr) {
 #if PY_MAJOR_VERSION >= 3
@@ -1350,7 +1350,7 @@ int write_dict(PyObject* self, buffer_t buffer,
 
     /* Write _id first if this is a top level doc. */
     if (top_level) {
-        PyObject* _id = PyDict_GetItemString(dict, "_id");
+        PyObject* _id = PyMapping_GetItemString(dict, "_id");
         if (_id) {
             if (!write_pair(self, buffer, "_id", 3,
                             _id, check_keys, uuid_subtype, 1)) {
@@ -1364,7 +1364,7 @@ int write_dict(PyObject* self, buffer_t buffer,
         return 0;
     }
     while ((key = PyIter_Next(iter)) != NULL) {
-        PyObject* value = PyDict_GetItem(dict, key);
+        PyObject* value = PyObject_GetItem(dict, key);
         if (!value) {
             PyErr_SetObject(PyExc_KeyError, key);
             Py_DECREF(key);
