@@ -24,6 +24,8 @@ import uuid
 
 sys.path[0:0] = [""]
 
+from collections import MutableMapping
+
 import bson
 from bson import (BSON,
                   decode_all,
@@ -51,32 +53,20 @@ if PY3:
     long = int
 
 
-class NotADict(object):
+class NotADict(MutableMapping):
     """Non-dict type that implements the mapping protocol."""
 
     def __init__(self, initial):
         self._dict = initial
 
-    def __contains__(self, item):
-        return item in self._dict
-
     def __iter__(self):
         return iter(self._dict)
-
-    def items(self):
-        return self._dict.items()
-
-    def iteritems(self):
-        return iteritems(self._dict)
 
     def __getitem__(self, item):
         return self._dict[item]
 
     def __len__(self):
         return len(self._dict)
-
-    def __eq__(self, other):
-        return self._dict == other
 
 
 class TestBSON(unittest.TestCase):
