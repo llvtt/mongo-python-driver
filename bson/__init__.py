@@ -624,13 +624,6 @@ def _name_value_to_bson(name, value, check_keys, uuid_subtype):
         if isinstance(value, base):
             return _ENCODERS[base](name, value, check_keys, uuid_subtype)
 
-    # If the value isn't a type that we recognize, assume it implements the
-    # mapping protocol.
-    if hasattr(value, '__getitem__'):
-        data = b"".join([_element_to_bson(key, val, check_keys, uuid_subtype)
-                         for key, val in iteritems(value)])
-        return b"\x03" + name + _PACK_INT(len(data) + 5) + data + b"\x00"
-
     raise InvalidDocument("cannot convert value of type %s to bson" %
                           type(value))
 

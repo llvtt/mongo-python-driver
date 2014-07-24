@@ -65,6 +65,12 @@ class NotADict(MutableMapping):
     def __getitem__(self, item):
         return self._dict[item]
 
+    def __delitem__(self, item):
+        del self._dict[item]
+
+    def __setitem__(self, item, value):
+        self._dict[item] = value
+
     def __len__(self):
         return len(self._dict)
 

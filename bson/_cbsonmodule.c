@@ -1349,13 +1349,11 @@ int write_dict(PyObject* self, buffer_t buffer,
     }
 
     /* Write _id first if this is a top level doc. */
-    if (top_level) {
+    if (top_level && PyMapping_HasKeyString(dict, "_id")) {
         PyObject* _id = PyMapping_GetItemString(dict, "_id");
-        if (_id) {
-            if (!write_pair(self, buffer, "_id", 3,
-                            _id, check_keys, uuid_subtype, 1)) {
-                return 0;
-            }
+        if (!write_pair(self, buffer, "_id", 3,
+                        _id, check_keys, uuid_subtype, 1)) {
+            return 0;
         }
     }
 
