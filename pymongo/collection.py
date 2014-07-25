@@ -534,7 +534,7 @@ class Collection(common.BaseObject):
         """
         if not isinstance(spec, collections.Mapping):
             raise TypeError("spec must be a mapping type")
-        if not isinstance(document, collections.MutableMapping):
+        if not isinstance(document, collections.Mapping):
             raise TypeError("document must be a mapping type")
         if not isinstance(upsert, bool):
             raise TypeError("upsert must be an instance of bool")
