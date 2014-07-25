@@ -58,7 +58,7 @@ class Code(str):
             self.__scope = {}
 
         if scope is not None:
-            if not isinstance(scope, collections.MutableMapping):
+            if not isinstance(scope, collections.Mapping):
                 raise TypeError("scope must be an instance of dict")
             self.__scope.update(scope)
 

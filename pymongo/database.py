@@ -293,7 +293,7 @@ class Database(common.BaseObject):
         as_class = kwargs.pop('as_class', None)
         fields = kwargs.pop('fields', None)
         if (fields is not None and not
-                isinstance(fields, collections.MutableMapping)):
+                isinstance(fields, collections.Mapping)):
             fields = helpers._fields_list_to_dict(fields)
         command.update(kwargs)
 
@@ -315,7 +315,7 @@ class Database(common.BaseObject):
         # Special-case: mapreduce can go to secondaries only if inline
         elif command_name == 'mapreduce':
             out = command.get('out')
-            if (not isinstance(out, collections.MutableMapping) or not
+            if (not isinstance(out, collections.Mapping) or not
                     out.get('inline')):
                 pref = ReadPreference.PRIMARY
 

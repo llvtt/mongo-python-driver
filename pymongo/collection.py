@@ -284,7 +284,7 @@ class Collection(common.BaseObject):
 
         .. mongodoc:: insert
         """
-        if not isinstance(to_save, dict):
+        if not isinstance(to_save, collections.MutableMapping):
             raise TypeError("cannot save object of type %s" % type(to_save))
 
         if "_id" not in to_save:
@@ -532,10 +532,10 @@ class Collection(common.BaseObject):
 
         .. mongodoc:: update
         """
-        if not isinstance(spec, collections.MutableMapping):
-            raise TypeError("spec must be an instance of dict")
+        if not isinstance(spec, collections.Mapping):
+            raise TypeError("spec must be a mapping type")
         if not isinstance(document, collections.MutableMapping):
-            raise TypeError("document must be an instance of dict")
+            raise TypeError("document must be a mapping type")
         if not isinstance(upsert, bool):
             raise TypeError("upsert must be an instance of bool")
 
@@ -679,7 +679,7 @@ class Collection(common.BaseObject):
         """
         if spec_or_id is None:
             spec_or_id = {}
-        if not isinstance(spec_or_id, collections.MutableMapping):
+        if not isinstance(spec_or_id, collections.Mapping):
             spec_or_id = {"_id": spec_or_id}
 
         concern = kwargs or self.write_concern
@@ -745,7 +745,7 @@ class Collection(common.BaseObject):
            :class:`~bson.objectid.ObjectId` instances.
         """
         if (spec_or_id is not None and not
-                isinstance(spec_or_id, collections.MutableMapping)):
+                isinstance(spec_or_id, collections.Mapping)):
             spec_or_id = {"_id": spec_or_id}
 
         max_time_ms = kwargs.pop("max_time_ms", None)
@@ -1326,7 +1326,7 @@ class Collection(common.BaseObject):
         if not isinstance(pipeline, (dict, list, tuple)):
             raise TypeError("pipeline must be a dict, list or tuple")
 
-        if isinstance(pipeline, collections.MutableMapping):
+        if isinstance(pipeline, collections.Mapping):
             pipeline = [pipeline]
 
         cmd = SON([("aggregate", self.__name),
@@ -1506,9 +1506,9 @@ class Collection(common.BaseObject):
 
         .. mongodoc:: mapreduce
         """
-        if not isinstance(out, (string_type, collections.MutableMapping)):
+        if not isinstance(out, (string_type, collections.Mapping)):
             raise TypeError("'out' must be an instance of "
-                            "%s or dict" % (string_type.__name__,))
+                            "%s or a mapping" % (string_type.__name__,))
 
         mode = read_preference or self.read_preference
         response = self.__database.command("mapreduce", self.__name,
