@@ -79,7 +79,7 @@ class TestBSON(unittest.TestCase):
     def assertInvalid(self, data):
         self.assertRaises(InvalidBSON, bson.BSON(data).decode)
 
-    def encode_then_decode_checks(self, dict_klass=dict):
+    def check_encode_then_decode(self, dict_klass=dict):
 
         def helper(dict):
             self.assertEqual(dict, (BSON.encode(dict_klass(dict))).decode())
@@ -114,6 +114,9 @@ class TestBSON(unittest.TestCase):
         helper({"$field": Code("function(){ return true; }")})
         helper({"$field": Code("return function(){ return x; }", scope={'x': False})})
 
+    def test_encode_then_decode(self):
+        self.check_encode_then_decode()
+
         doc_class = dict
         # Work around http://bugs.jython.org/issue1728
         if (sys.platform.startswith('java') and
@@ -126,11 +129,8 @@ class TestBSON(unittest.TestCase):
         qcheck.check_unittest(self, encode_then_decode,
                               qcheck.gen_mongo_dict(3))
 
-    def test_encode_then_decode(self):
-        self.encode_then_decode_checks()
-
-    def test_encode_any_map(self):
-        self.encode_then_decode_checks(dict_klass=NotADict)
+    def test_encode_then_decode_any_mapping(self):
+        self.check_encode_then_decode(dict_klass=NotADict)
 
     def test_basic_validation(self):
         self.assertRaises(TypeError, is_valid, 100)
