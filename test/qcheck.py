@@ -241,6 +241,8 @@ def check(predicate, generator):
             if not predicate(case):
                 reduction = reduce(case, predicate)
                 counter_examples.append("after %s reductions: %r" % reduction)
+                # counter_examples.append("not %s(%r)" % (predicate.__name__,
+                #                                         case))
         except:
             counter_examples.append("%r : %s" % (case, traceback.format_exc()))
     return counter_examples

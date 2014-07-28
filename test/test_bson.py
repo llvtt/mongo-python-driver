@@ -16,6 +16,7 @@
 
 """Test the bson module."""
 
+import collections
 import datetime
 import re
 import sys
@@ -23,8 +24,6 @@ import traceback
 import uuid
 
 sys.path[0:0] = [""]
-
-from collections import MutableMapping
 
 import bson
 from bson import (BSON,
@@ -53,7 +52,7 @@ if PY3:
     long = int
 
 
-class NotADict(MutableMapping):
+class NotADict(collections.MutableMapping):
     """Non-dict type that implements the mapping protocol."""
 
     def __init__(self, initial={}):
@@ -74,15 +73,20 @@ class NotADict(MutableMapping):
     def __len__(self):
         return len(self._dict)
 
+    def __eq__(self, other):
+        if isinstance(other, collections.Mapping):
+            return all(self.get(k) == other.get(k) for k in self)
+        return NotImplemented
+
 
 class TestBSON(unittest.TestCase):
     def assertInvalid(self, data):
         self.assertRaises(InvalidBSON, bson.BSON(data).decode)
 
-    def check_encode_then_decode(self, dict_klass=dict):
+    def check_encode_then_decode(self, doc_class=dict):
 
         def helper(dict):
-            self.assertEqual(dict, (BSON.encode(dict_klass(dict))).decode())
+            self.assertEqual(dict, (BSON.encode(doc_class(dict))).decode())
         helper({})
         helper({"test": u("hello")})
         self.assertTrue(isinstance(BSON.encode({"hello": "world"})
@@ -95,7 +99,7 @@ class TestBSON(unittest.TestCase):
         helper({"something": True})
         helper({"false": False})
         helper({"an array": [1, True, 3.8, u("world")]})
-        helper({"an object": dict_klass({"test": u("something")})})
+        helper({"an object": doc_class({"test": u("something")})})
         helper({"a binary": Binary(b"test", 100)})
         helper({"a binary": Binary(b"test", 128)})
         helper({"a binary": Binary(b"test", 254)})
@@ -114,23 +118,17 @@ class TestBSON(unittest.TestCase):
         helper({"$field": Code("function(){ return true; }")})
         helper({"$field": Code("return function(){ return x; }", scope={'x': False})})
 
-    def test_encode_then_decode(self):
-        self.check_encode_then_decode()
-
-        doc_class = dict
-        # Work around http://bugs.jython.org/issue1728
-        if (sys.platform.startswith('java') and
-            sys.version_info[:3] >= (2, 5, 2)):
-            doc_class = SON
-
         def encode_then_decode(doc):
-            return doc == (BSON.encode(doc)).decode(as_class=doc_class)
+            return doc == BSON.encode(doc).decode(as_class=doc_class)
 
         qcheck.check_unittest(self, encode_then_decode,
                               qcheck.gen_mongo_dict(3))
 
+    def test_encode_then_decode(self):
+        self.check_encode_then_decode()
+
     def test_encode_then_decode_any_mapping(self):
-        self.check_encode_then_decode(dict_klass=NotADict)
+        self.check_encode_then_decode(doc_class=NotADict)
 
     def test_basic_validation(self):
         self.assertRaises(TypeError, is_valid, 100)
