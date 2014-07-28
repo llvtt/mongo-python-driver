@@ -56,7 +56,7 @@ if PY3:
 class NotADict(MutableMapping):
     """Non-dict type that implements the mapping protocol."""
 
-    def __init__(self, initial):
+    def __init__(self, initial={}):
         self._dict = initial
 
     def __iter__(self):
