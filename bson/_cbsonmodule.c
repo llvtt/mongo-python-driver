@@ -51,6 +51,7 @@ struct module_state {
     PyObject* UTC;
     PyTypeObject* REType;
     PyObject* BSONInt64;
+    PyObject* Mapping;
 };
 
 /* The Py_TYPE macro was introduced in CPython 2.6 */
@@ -332,7 +333,8 @@ static int _load_python_objects(PyObject* module) {
         _load_object(&state->RECompile, "re", "compile") ||
         _load_object(&state->Regex, "bson.regex", "Regex") ||
         _load_object(&state->BSONInt64, "bson.bsonint64", "BSONInt64") ||
-        _load_object(&state->UUID, "uuid", "UUID")) {
+        _load_object(&state->UUID, "uuid", "UUID") ||
+        _load_object(&state->Mapping, "collections", "Mapping")) {
         return 1;
     }
     /* Reload our REType hack too. */
@@ -870,7 +872,11 @@ static int _write_element_to_buffer(PyObject* self, buffer_t buffer,
     } else if (value == Py_None) {
         *(buffer_get_buffer(buffer) + type_byte) = 0x0A;
         return 1;
-    } else if (PyMapping_Check(value)) {
+    } else if (PyObject_IsInstance(value, state->Mapping)) {
+        // PyObject_IsInstance returns -1 on error
+        if (PyErr_Occurred()) {
+            return 0;
+        }
         *(buffer_get_buffer(buffer) + type_byte) = 0x03;
         return write_dict(self, buffer, value, check_keys, uuid_subtype, 0);
     } else if (PyList_Check(value) || PyTuple_Check(value)) {
@@ -1305,8 +1311,13 @@ int write_dict(PyObject* self, buffer_t buffer,
     char zero = 0;
     int length;
     int length_location;
+    struct module_state *state = GETSTATE(self);
 
-    if (!PyMapping_Check(dict)) {
+    if (PyObject_IsInstance(dict, state->Mapping) != 1) {
+        // PyObject_IsInstance return -1 on error
+        if (PyErr_Occurred()) {
+            return 0;
+        }
         PyObject* repr = PyObject_Repr(dict);
         if (repr) {
 #if PY_MAJOR_VERSION >= 3
@@ -1363,7 +1374,12 @@ int write_dict(PyObject* self, buffer_t buffer,
     }
     while ((key = PyIter_Next(iter)) != NULL) {
         PyObject* value = PyObject_GetItem(dict, key);
-        if (!value) {
+        if (PyErr_Occurred()) { // Preserve error?
+            Py_DECREF(key);
+            Py_DECREF(iter);
+            return 0;
+        }
+        else if (!value) {
             PyErr_SetObject(PyExc_KeyError, key);
             Py_DECREF(key);
             Py_DECREF(iter);
