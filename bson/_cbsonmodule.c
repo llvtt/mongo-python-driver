@@ -1374,12 +1374,7 @@ int write_dict(PyObject* self, buffer_t buffer,
     }
     while ((key = PyIter_Next(iter)) != NULL) {
         PyObject* value = PyObject_GetItem(dict, key);
-        if (PyErr_Occurred()) { // Preserve error?
-            Py_DECREF(key);
-            Py_DECREF(iter);
-            return 0;
-        }
-        else if (!value) {
+        if (!value) {
             PyErr_SetObject(PyExc_KeyError, key);
             Py_DECREF(key);
             Py_DECREF(iter);
