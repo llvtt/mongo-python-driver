@@ -1501,17 +1501,17 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
             }
 
             /* Decoding for DBRefs */
-            collection = PyDict_GetItemString(value, "$ref");
-            if (collection) { /* DBRef */
+            if (PyMapping_HasKeyString(value, "$ref")) { /* DBRef */
                 PyObject* dbref = NULL;
                 PyObject* dbref_type;
                 PyObject* id;
                 PyObject* database;
 
+                collection = PyMapping_GetItemString(value, "$ref");
                 Py_INCREF(collection);
                 PyDict_DelItemString(value, "$ref");
 
-                id = PyDict_GetItemString(value, "$id");
+                id = PyMapping_GetItemString(value, "$id");
                 if (id == NULL) {
                     id = Py_None;
                     Py_INCREF(id);
@@ -1520,11 +1520,11 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                     PyDict_DelItemString(value, "$id");
                 }
 
-                database = PyDict_GetItemString(value, "$db");
-                if (database == NULL) {
+                if (!PyMapping_HasKeyString(value, "$db")) {
                     database = Py_None;
                     Py_INCREF(database);
                 } else {
+                    database = PyMapping_GetItemString(value, "$db");
                     Py_INCREF(database);
                     PyDict_DelItemString(value, "$db");
                 }

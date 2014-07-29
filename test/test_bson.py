@@ -55,8 +55,11 @@ if PY3:
 class NotADict(collections.MutableMapping):
     """Non-dict type that implements the mapping protocol."""
 
-    def __init__(self, initial={}):
-        self._dict = initial
+    def __init__(self, initial=None):
+        if not initial:
+            self._dict = {}
+        else:
+            self._dict = initial
 
     def __iter__(self):
         return iter(self._dict)
@@ -77,6 +80,9 @@ class NotADict(collections.MutableMapping):
         if isinstance(other, collections.Mapping):
             return all(self.get(k) == other.get(k) for k in self)
         return NotImplemented
+
+    def __repr__(self):
+        return "NotADict(%s)" % repr(self._dict)
 
 
 class TestBSON(unittest.TestCase):
@@ -119,7 +125,7 @@ class TestBSON(unittest.TestCase):
         helper({"$field": Code("return function(){ return x; }", scope={'x': False})})
 
         def encode_then_decode(doc):
-            return doc == BSON.encode(doc).decode(as_class=doc_class)
+            return doc_class(doc) == BSON.encode(doc).decode(as_class=doc_class)
 
         qcheck.check_unittest(self, encode_then_decode,
                               qcheck.gen_mongo_dict(3))
