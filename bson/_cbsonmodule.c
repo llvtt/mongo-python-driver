@@ -1509,7 +1509,7 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
 
                 collection = PyMapping_GetItemString(value, "$ref");
                 Py_INCREF(collection);
-                PyDict_DelItemString(value, "$ref");
+                PyMapping_DelItemString(value, "$ref");
 
                 id = PyMapping_GetItemString(value, "$id");
                 if (id == NULL) {
@@ -1517,7 +1517,7 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                     Py_INCREF(id);
                 } else {
                     Py_INCREF(id);
-                    PyDict_DelItemString(value, "$id");
+                    PyMapping_DelItemString(value, "$id");
                 }
 
                 if (!PyMapping_HasKeyString(value, "$db")) {
@@ -1526,7 +1526,7 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                 } else {
                     database = PyMapping_GetItemString(value, "$db");
                     Py_INCREF(database);
-                    PyDict_DelItemString(value, "$db");
+                    PyMapping_DelItemString(value, "$db");
                 }
 
                 if ((dbref_type = _get_object(state->DBRef, "bson.dbref", "DBRef"))) {
