@@ -1316,56 +1316,14 @@ int write_dict(PyObject* self, buffer_t buffer,
     char zero = 0;
     int length;
     int length_location;
+    struct module_state *state = GETSTATE(self);
+    PyObject* mapping_type = _get_object(state->Mapping, "collections", "Mapping");
 
-    length_location = buffer_save_space(buffer, 4);
-    if (length_location == -1) {
-        PyErr_NoMemory();
-        return 0;
-    }
-
-    /* Write _id first if this is a top level doc. */
-    if (top_level && PyMapping_HasKeyString(dict, "_id")) {
-        PyObject* _id = PyMapping_GetItemString(dict, "_id");
-        if (!write_pair(self, buffer, "_id", 3,
-                        _id, check_keys, uuid_subtype, 1)) {
+    if (mapping_type && !PyObject_IsInstance(dict, mapping_type)) {
+        // PyObject_IsInstance return -1 on error
+        if (PyErr_Occurred()) {
             return 0;
         }
-    }
-
-    iter = PyObject_GetIter(dict);
-    if (iter == NULL) {
-        goto pydict_error;
-    }
-    while ((key = PyIter_Next(iter)) != NULL) {
-        PyObject* value = PyObject_GetItem(dict, key);
-        if (PyErr_Occurred()) goto pydict_error;
-        if (!value) {
-            PyErr_SetObject(PyExc_KeyError, key);
-            Py_DECREF(key);
-            Py_DECREF(iter);
-            return 0;
-        }
-        if (!decode_and_write_pair(self, buffer, key, value,
-                                   check_keys, uuid_subtype, top_level)) {
-            Py_DECREF(key);
-            Py_DECREF(iter);
-            return 0;
-        }
-        Py_DECREF(key);
-    }
-    Py_DECREF(iter);
-    if (PyErr_Occurred()) goto pydict_error;
-
-    /* write null byte and fill in length */
-    if (!buffer_write_bytes(buffer, &zero, 1)) {
-        return 0;
-    }
-    length = buffer_get_position(buffer) - length_location;
-    memcpy(buffer_get_buffer(buffer) + length_location, &length, 4);
-    return 1;
-
-pydict_error:
-    if (PyErr_Occurred()) {
         PyObject* repr = PyObject_Repr(dict);
         if (repr) {
 #if PY_MAJOR_VERSION >= 3
@@ -1398,8 +1356,53 @@ pydict_error:
             PyErr_SetString(PyExc_TypeError,
                             "encoder expected a mapping type");
         }
+        return 0;
     }
-    return 0;
+
+    length_location = buffer_save_space(buffer, 4);
+    if (length_location == -1) {
+        PyErr_NoMemory();
+        return 0;
+    }
+
+    /* Write _id first if this is a top level doc. */
+    if (top_level && PyMapping_HasKeyString(dict, "_id")) {
+        PyObject* _id = PyMapping_GetItemString(dict, "_id");
+        if (!write_pair(self, buffer, "_id", 3,
+                        _id, check_keys, uuid_subtype, 1)) {
+            return 0;
+        }
+    }
+
+    iter = PyObject_GetIter(dict);
+    if (iter == NULL) {
+        return 0;
+    }
+    while ((key = PyIter_Next(iter)) != NULL) {
+        PyObject* value = PyObject_GetItem(dict, key);
+        if (!value) {
+            PyErr_SetObject(PyExc_KeyError, key);
+            Py_DECREF(key);
+            Py_DECREF(iter);
+            return 0;
+        }
+        if (!decode_and_write_pair(self, buffer, key, value,
+                                   check_keys, uuid_subtype, top_level)) {
+            Py_DECREF(key);
+            Py_DECREF(iter);
+            return 0;
+        }
+        Py_DECREF(key);
+    }
+    Py_DECREF(iter);
+
+    /* write null byte and fill in length */
+    if (!buffer_write_bytes(buffer, &zero, 1)) {
+        return 0;
+    }
+    length = buffer_get_position(buffer) - length_location;
+    memcpy(buffer_get_buffer(buffer) + length_location, &length, 4);
+    return 1;
 }
 
 static PyObject* _cbson_dict_to_bson(PyObject* self, PyObject* args) {
