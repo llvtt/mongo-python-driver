@@ -1323,7 +1323,7 @@ class Collection(common.BaseObject):
         .. _aggregate command:
             http://docs.mongodb.org/manual/applications/aggregation
         """
-        if not isinstance(pipeline, (dict, list, tuple)):
+        if not isinstance(pipeline, (collections.Mapping, list, tuple)):
             raise TypeError("pipeline must be a dict, list or tuple")
 
         if isinstance(pipeline, collections.Mapping):
