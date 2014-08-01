@@ -1317,7 +1317,8 @@ int write_dict(PyObject* self, buffer_t buffer,
     int length;
     int length_location;
     struct module_state *state = GETSTATE(self);
-    PyObject* mapping_type = _get_object(state->Mapping, "collections", "Mapping");
+    PyObject* mapping_type = _get_object(state->Mapping,
+                                         "collections", "Mapping");
 
     if (mapping_type && !PyObject_IsInstance(dict, mapping_type)) {
         // PyObject_IsInstance return -1 on error
