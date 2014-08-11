@@ -873,6 +873,9 @@ static int _write_element_to_buffer(PyObject* self, buffer_t buffer,
     } else if (value == Py_None) {
         *(buffer_get_buffer(buffer) + type_byte) = 0x0A;
         return 1;
+    } else if (PyDict_Check(value)) {
+        *(buffer_get_buffer(buffer) + type_byte) = 0x03;
+        return write_dict(self, buffer, value, check_keys, uuid_subtype, 0);
     } else if (PyList_Check(value) || PyTuple_Check(value)) {
         Py_ssize_t items, i;
         int start_position,
@@ -1026,18 +1029,24 @@ static int _write_element_to_buffer(PyObject* self, buffer_t buffer,
      * Try Mapping and UUID last since we have to import
      * them if we're in a sub-interpreter.
      */
-    uuid_type = _get_object(state->UUID, "uuid", "UUID");
     mapping_type = _get_object(state->Mapping, "collections", "Mapping");
-
     if (mapping_type && PyObject_IsInstance(value, mapping_type)) {
+        Py_DECREF(mapping_type);
         // PyObject_IsInstance returns -1 on error
         if (PyErr_Occurred()) {
             return 0;
         }
-        Py_DECREF(mapping_type);
         *(buffer_get_buffer(buffer) + type_byte) = 0x03;
         return write_dict(self, buffer, value, check_keys, uuid_subtype, 0);
-    } else if (uuid_type && PyObject_IsInstance(value, uuid_type)) {
+    }
+
+    uuid_type = _get_object(state->UUID, "uuid", "UUID");
+    if (uuid_type && PyObject_IsInstance(value, uuid_type)) {
+        Py_DECREF(uuid_type);
+        // PyObject_IsInstance returns -1 on error
+        if (PyErr_Occurred()) {
+            return 0;
+        }
         /* Just a special case of Binary above, but
          * simpler to do as a separate case. */
         PyObject* bytes;
@@ -1046,8 +1055,6 @@ static int _write_element_to_buffer(PyObject* self, buffer_t buffer,
         /* UUID is always 16 bytes */
         int size = 16;
         int subtype;
-
-        Py_DECREF(uuid_type);
 
         if (uuid_subtype == JAVA_LEGACY || uuid_subtype == CSHARP_LEGACY) {
             subtype = 3;
@@ -1321,6 +1328,7 @@ int write_dict(PyObject* self, buffer_t buffer,
                                          "collections", "Mapping");
 
     if (mapping_type && !PyObject_IsInstance(dict, mapping_type)) {
+        Py_DECREF(mapping_type);
         // PyObject_IsInstance return -1 on error
         if (PyErr_Occurred()) {
             return 0;
@@ -1359,6 +1367,7 @@ int write_dict(PyObject* self, buffer_t buffer,
         }
         return 0;
     }
+    Py_DECREF(mapping_type);
 
     length_location = buffer_save_space(buffer, 4);
     if (length_location == -1) {
@@ -1369,10 +1378,15 @@ int write_dict(PyObject* self, buffer_t buffer,
     /* Write _id first if this is a top level doc. */
     if (top_level && PyMapping_HasKeyString(dict, "_id")) {
         PyObject* _id = PyMapping_GetItemString(dict, "_id");
-        if (!write_pair(self, buffer, "_id", 3,
-                        _id, check_keys, uuid_subtype, 1)) {
+        if (!_id) {
             return 0;
         }
+        if (!write_pair(self, buffer, "_id", 3,
+                        _id, check_keys, uuid_subtype, 1)) {
+            Py_DECREF(_id);
+            return 0;
+        }
+        Py_DECREF(_id);
     }
 
     iter = PyObject_GetIter(dict);
@@ -1390,10 +1404,12 @@ int write_dict(PyObject* self, buffer_t buffer,
         if (!decode_and_write_pair(self, buffer, key, value,
                                    check_keys, uuid_subtype, top_level)) {
             Py_DECREF(key);
+            Py_DECREF(value);
             Py_DECREF(iter);
             return 0;
         }
         Py_DECREF(key);
+        Py_DECREF(value);
     }
     Py_DECREF(iter);
 
@@ -1515,16 +1531,22 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                 PyObject* database;
 
                 collection = PyMapping_GetItemString(value, "$ref");
-                Py_INCREF(collection);
+		// PyMapping_GetItemString returns NULL to indicate error.
+                if (!collection) {
+                    goto invalid;
+                }
                 PyMapping_DelItemString(value, "$ref");
 
-                id = PyMapping_GetItemString(value, "$id");
-                if (id == NULL) {
+                if (PyMapping_HasKeyString(value, "$id")) {
+                    id = PyMapping_GetItemString(value, "$id");
+                    if (!id) {
+                        Py_DECREF(collection);
+                        goto invalid;
+                    }
+                    PyMapping_DelItemString(value, "$id");
+                } else {
                     id = Py_None;
                     Py_INCREF(id);
-                } else {
-                    Py_INCREF(id);
-                    PyMapping_DelItemString(value, "$id");
                 }
 
                 if (!PyMapping_HasKeyString(value, "$db")) {
@@ -1532,7 +1554,11 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                     Py_INCREF(database);
                 } else {
                     database = PyMapping_GetItemString(value, "$db");
-                    Py_INCREF(database);
+                    if (!database) {
+                        Py_DECREF(collection);
+			Py_DECREF(id);
+                        goto invalid;
+                    }
                     PyMapping_DelItemString(value, "$db");
                 }
 
