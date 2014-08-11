@@ -1327,47 +1327,49 @@ int write_dict(PyObject* self, buffer_t buffer,
     PyObject* mapping_type = _get_object(state->Mapping,
                                          "collections", "Mapping");
 
-    if (mapping_type && !PyObject_IsInstance(dict, mapping_type)) {
+    if (mapping_type) {
         Py_DECREF(mapping_type);
-        // PyObject_IsInstance return -1 on error
+        if (!PyObject_IsInstance(dict, mapping_type)) {
+            PyObject* repr = PyObject_Repr(dict);
+            if (repr) {
+#if PY_MAJOR_VERSION >= 3
+                PyObject* errmsg = PyUnicode_FromString(
+                    "encoder expected a mapping type but got: ");
+                if (errmsg) {
+                    PyObject* error = PyUnicode_Concat(errmsg, repr);
+                    if (error) {
+                        PyErr_SetObject(PyExc_TypeError, error);
+                        Py_DECREF(error);
+                    }
+                    Py_DECREF(errmsg);
+                    Py_DECREF(repr);
+                }
+#else
+                PyObject* errmsg = PyString_FromString(
+                    "encoder expected a mapping type but got: ");
+                if (errmsg) {
+                    PyString_ConcatAndDel(&errmsg, repr);
+                    if (errmsg) {
+                        PyErr_SetObject(PyExc_TypeError, errmsg);
+                        Py_DECREF(errmsg);
+                    }
+                }
+#endif
+                else {
+                    Py_DECREF(repr);
+                }
+            } else {
+                PyErr_SetString(PyExc_TypeError,
+                                "encoder expected a mapping type");
+            }
+
+            return 0;
+        }
+        // PyObject_IsInstance returns -1 on error
         if (PyErr_Occurred()) {
             return 0;
         }
-        PyObject* repr = PyObject_Repr(dict);
-        if (repr) {
-#if PY_MAJOR_VERSION >= 3
-            PyObject* errmsg = PyUnicode_FromString(
-                "encoder expected a mapping type but got: ");
-            if (errmsg) {
-                PyObject* error = PyUnicode_Concat(errmsg, repr);
-                if (error) {
-                    PyErr_SetObject(PyExc_TypeError, error);
-                    Py_DECREF(error);
-                }
-                Py_DECREF(errmsg);
-                Py_DECREF(repr);
-            }
-#else
-            PyObject* errmsg = PyString_FromString(
-                "encoder expected a mapping type but got: ");
-            if (errmsg) {
-                PyString_ConcatAndDel(&errmsg, repr);
-                if (errmsg) {
-                    PyErr_SetObject(PyExc_TypeError, errmsg);
-                    Py_DECREF(errmsg);
-                }
-            }
-#endif
-            else {
-                Py_DECREF(repr);
-            }
-        } else {
-            PyErr_SetString(PyExc_TypeError,
-                            "encoder expected a mapping type");
-        }
-        return 0;
     }
-    Py_DECREF(mapping_type);
 
     length_location = buffer_save_space(buffer, 4);
     if (length_location == -1) {
@@ -1378,7 +1380,7 @@ int write_dict(PyObject* self, buffer_t buffer,
     /* Write _id first if this is a top level doc. */
     if (top_level && PyMapping_HasKeyString(dict, "_id")) {
         PyObject* _id = PyMapping_GetItemString(dict, "_id");
-        if (!_id) {
+        if (NULL == _id) {
             return 0;
         }
         if (!write_pair(self, buffer, "_id", 3,
@@ -1395,7 +1397,7 @@ int write_dict(PyObject* self, buffer_t buffer,
     }
     while ((key = PyIter_Next(iter)) != NULL) {
         PyObject* value = PyObject_GetItem(dict, key);
-        if (!value) {
+        if (NULL == value) {
             PyErr_SetObject(PyExc_KeyError, key);
             Py_DECREF(key);
             Py_DECREF(iter);
@@ -1531,7 +1533,7 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                 PyObject* database;
 
                 collection = PyMapping_GetItemString(value, "$ref");
-		// PyMapping_GetItemString returns NULL to indicate error.
+                // PyMapping_GetItemString returns NULL to indicate error.
                 if (!collection) {
                     goto invalid;
                 }
@@ -1539,7 +1541,7 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
 
                 if (PyMapping_HasKeyString(value, "$id")) {
                     id = PyMapping_GetItemString(value, "$id");
-                    if (!id) {
+                    if (NULL == id) {
                         Py_DECREF(collection);
                         goto invalid;
                     }
@@ -1554,9 +1556,9 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                     Py_INCREF(database);
                 } else {
                     database = PyMapping_GetItemString(value, "$db");
-                    if (!database) {
+                    if (NULL == database) {
                         Py_DECREF(collection);
-			Py_DECREF(id);
+                        Py_DECREF(id);
                         goto invalid;
                     }
                     PyMapping_DelItemString(value, "$db");
