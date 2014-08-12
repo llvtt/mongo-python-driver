@@ -1328,8 +1328,8 @@ int write_dict(PyObject* self, buffer_t buffer,
                                          "collections", "Mapping");
 
     if (mapping_type) {
-        Py_DECREF(mapping_type);
         if (!PyObject_IsInstance(dict, mapping_type)) {
+            Py_DECREF(mapping_type);
             PyObject* repr = PyObject_Repr(dict);
             if (repr) {
 #if PY_MAJOR_VERSION >= 3
@@ -1365,6 +1365,7 @@ int write_dict(PyObject* self, buffer_t buffer,
 
             return 0;
         }
+        Py_DECREF(mapping_type);
         // PyObject_IsInstance returns -1 on error
         if (PyErr_Occurred()) {
             return 0;
