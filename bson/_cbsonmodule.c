@@ -1381,7 +1381,7 @@ int write_dict(PyObject* self, buffer_t buffer,
     /* Write _id first if this is a top level doc. */
     if (top_level && PyMapping_HasKeyString(dict, "_id")) {
         PyObject* _id = PyMapping_GetItemString(dict, "_id");
-        if (NULL == _id) {
+        if (!_id) {
             return 0;
         }
         if (!write_pair(self, buffer, "_id", 3,
@@ -1398,7 +1398,7 @@ int write_dict(PyObject* self, buffer_t buffer,
     }
     while ((key = PyIter_Next(iter)) != NULL) {
         PyObject* value = PyObject_GetItem(dict, key);
-        if (NULL == value) {
+        if (!value) {
             PyErr_SetObject(PyExc_KeyError, key);
             Py_DECREF(key);
             Py_DECREF(iter);
@@ -1542,7 +1542,7 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
 
                 if (PyMapping_HasKeyString(value, "$id")) {
                     id = PyMapping_GetItemString(value, "$id");
-                    if (NULL == id) {
+                    if (!id) {
                         Py_DECREF(collection);
                         goto invalid;
                     }
@@ -1557,7 +1557,7 @@ static PyObject* get_value(PyObject* self, const char* buffer, unsigned* positio
                     Py_INCREF(database);
                 } else {
                     database = PyMapping_GetItemString(value, "$db");
-                    if (NULL == database) {
+                    if (!database) {
                         Py_DECREF(collection);
                         Py_DECREF(id);
                         goto invalid;
