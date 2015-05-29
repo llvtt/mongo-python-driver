@@ -933,6 +933,34 @@ class BSON(bytes):
         return _bson_to_dict(self, codec_options)
 
 
+# TODO: docstrings and stuff.
+class RawBSONDocument(collections.Mapping):
+
+    def __init__(self, bson_bytes):
+        self.__raw = BSON(bson_bytes)
+        self.__inflated_doc = None
+
+    @property
+    def raw(self):
+        return self.__raw
+
+    @property
+    def __inflated(self):
+        if self.__inflated_doc is None:
+            self.__inflated_doc = self.__raw.decode()
+        return self.__inflated_doc
+
+    def __getitem__(self, item):
+        return self.__inflated[item]
+
+    def __len__(self):
+        # TODO: don't need to inflate for this.
+        return len(self.__inflated)
+
+    def __iter__(self):
+        return iter(self.__inflated)
+
+
 def has_c():
     """Is the C extension installed?
     """
