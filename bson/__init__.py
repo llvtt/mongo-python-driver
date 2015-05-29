@@ -92,6 +92,10 @@ _UNPACK_LONG = struct.Struct("<q").unpack
 _UNPACK_TIMESTAMP = struct.Struct("<II").unpack
 
 
+def _use_raw(options):
+    return issubclass(options.document_class, RawBSONDocument)
+
+
 def _get_int(data, position, dummy0, dummy1):
     """Decode a BSON int32 to python int."""
     end = position + 4
@@ -303,6 +307,9 @@ def _element_to_dict(data, position, obj_end, opts):
 
 def _elements_to_dict(data, position, obj_end, opts):
     """Decode a BSON document."""
+    if _use_raw(opts):
+        # Include EOO.
+        return RawBSONDocument(data[position:obj_end + 1])
     result = opts.document_class()
     end = obj_end - 1
     while position < end:
