@@ -45,7 +45,7 @@ class CodecOptions(_options_base):
         if not (issubclass(document_class, MutableMapping) or
                 hasattr(document_class, '_raw')):
             raise TypeError("document_class must be dict, bson.son.SON, "
-                            "bson.RawBSONDocument, or"
+                            "bson.raw_bson_document.RawBSONDocument, or"
                             "a subclass of collections.MutableMapping")
         if not isinstance(tz_aware, bool):
             raise TypeError("tz_aware must be True or False")
