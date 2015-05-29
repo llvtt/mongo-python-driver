@@ -21,6 +21,7 @@ from bson.binary import (STANDARD, PYTHON_LEGACY,
                          JAVA_LEGACY, CSHARP_LEGACY)
 from bson.codec_options import CodecOptions
 from bson.py3compat import string_type, integer_types
+from bson.raw_bson_document import RawBSONDocument
 from pymongo.auth import MECHANISMS
 from pymongo.errors import ConfigurationError
 from pymongo.read_preferences import (read_pref_mode_from_name,
@@ -332,6 +333,7 @@ def validate_auth_mechanism_properties(option, value):
     return props
 
 
+# TODO: requires change?
 def validate_document_class(option, value):
     """Validate the document_class option."""
     if not issubclass(value, collections.MutableMapping):
@@ -354,6 +356,14 @@ def validate_is_mutable_mapping(option, value):
         raise TypeError("%s must be an instance of dict, bson.son.SON, or "
                         "other type that inherits from "
                         "collections.MutableMapping" % (option,))
+
+
+def validate_document_type(option, value):
+    """Validate an insert document."""
+    if not isinstance(value, (collections.MutableMapping, RawBSONDocument)):
+        raise TypeError('%s must be an instance of dict, bson.son.SON, '
+                        'collections.MutableMapping or '
+                        'bson.raw_bson_document.RawBSONDocument.')
 
 
 def validate_ok_for_replace(replacement):
