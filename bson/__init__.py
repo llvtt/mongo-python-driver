@@ -93,7 +93,7 @@ _UNPACK_TIMESTAMP = struct.Struct("<II").unpack
 
 
 def _use_raw(options):
-    return issubclass(options.document_class, RawBSONDocument)
+    return hasattr(options.document_class, '_raw')
 
 
 def _get_int(data, position, dummy0, dummy1):
@@ -309,7 +309,7 @@ def _elements_to_dict(data, position, obj_end, opts):
     """Decode a BSON document."""
     if _use_raw(opts):
         # Include EOO.
-        return RawBSONDocument(data[position:obj_end + 1])
+        return opts.document_class(data[position:obj_end + 1])
     result = opts.document_class()
     end = obj_end - 1
     while position < end:
@@ -938,34 +938,6 @@ class BSON(bytes):
             raise _CODEC_OPTIONS_TYPE_ERROR
 
         return _bson_to_dict(self, codec_options)
-
-
-# TODO: docstrings and stuff.
-class RawBSONDocument(collections.Mapping):
-
-    def __init__(self, bson_bytes):
-        self.__raw = BSON(bson_bytes)
-        self.__inflated_doc = None
-
-    @property
-    def raw(self):
-        return self.__raw
-
-    @property
-    def __inflated(self):
-        if self.__inflated_doc is None:
-            self.__inflated_doc = self.__raw.decode()
-        return self.__inflated_doc
-
-    def __getitem__(self, item):
-        return self.__inflated[item]
-
-    def __len__(self):
-        # TODO: don't need to inflate for this.
-        return len(self.__inflated)
-
-    def __iter__(self):
-        return iter(self.__inflated)
 
 
 def has_c():
