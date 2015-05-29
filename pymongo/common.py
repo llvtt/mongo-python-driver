@@ -369,12 +369,18 @@ def validate_is_mapping(option, value):
                         "collections.Mapping" % (option,))
 
 
+# TODO: is this function useful anymore?
 def validate_is_mutable_mapping(option, value):
     """Validate the type of method arguments that expect a mutable document."""
     if not isinstance(value, collections.MutableMapping):
         raise TypeError("%s must be an instance of dict, bson.son.SON, or "
                         "other type that inherits from "
                         "collections.MutableMapping" % (option,))
+
+
+def validate_document_type(option, value):
+    if not isinstance(value, RawBSONDocument):
+        validate_is_mutable_mapping(option, value)
 
 
 def validate_ok_for_replace(replacement):
