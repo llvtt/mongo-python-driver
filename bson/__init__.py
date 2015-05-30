@@ -327,8 +327,7 @@ def _bson_to_dict(data, opts):
     except struct.error as exc:
         raise InvalidBSON(str(exc))
     if obj_size != len(data):
-        raise InvalidBSON("invalid object size: %d != %d"
-                          % (obj_size, len(data)))
+        raise InvalidBSON("invalid object size")
     if data[obj_size - 1:obj_size] != b"\x00":
         raise InvalidBSON("bad eoo")
     try:
