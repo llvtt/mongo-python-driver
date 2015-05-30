@@ -24,6 +24,7 @@ from bson.py3compat import (_unicode,
                             string_type,
                             u)
 from bson.codec_options import CodecOptions
+from bson.raw_bson_document import RawBSONDocument
 from bson.son import SON
 from pymongo import (common,
                      helpers,
@@ -384,7 +385,7 @@ class Collection(common.BaseObject):
                 check_keys=True, manipulate=False, write_concern=None):
         """Internal insert helper."""
         return_one = False
-        if isinstance(docs, collections.MutableMapping):
+        if isinstance(docs, (collections.MutableMapping, RawBSONDocument)):
             return_one = True
             docs = [docs]
 
@@ -460,8 +461,8 @@ class Collection(common.BaseObject):
 
         .. versionadded:: 3.0
         """
-        common.validate_is_mutable_mapping("document", document)
-        if "_id" not in document:
+        common.validate_document_type("document", document)
+        if not isinstance(document, RawBSONDocument) and "_id" not in document:
             document["_id"] = ObjectId()
         with self._socket_for_writes() as sock_info:
             return InsertOneResult(self._insert(sock_info, document),
@@ -497,9 +498,10 @@ class Collection(common.BaseObject):
         def gen():
             """A generator that validates documents and handles _ids."""
             for document in documents:
-                common.validate_is_mutable_mapping("document", document)
-                if "_id" not in document:
-                    document["_id"] = ObjectId()
+                common.validate_document_type("document", document)
+                if not isinstance(document, RawBSONDocument):
+                    if "_id" not in document:
+                        document["_id"] = ObjectId()
                 inserted_ids.append(document["_id"])
                 yield (_INSERT, document)
 
