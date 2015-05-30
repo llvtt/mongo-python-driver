@@ -24,15 +24,11 @@ class RawBSONDocument(collections.Mapping):
 
     _raw = True
 
-    def __init__(self, bson_bytes):
-        self.__initialize(bson_bytes)
-
-    def __set_raw(self, bson_bytes):
-        self.__initialize(bson_bytes)
-
-    def __initialize(self, bson_bytes):
+    def __init__(self, bson_bytes,
+                 codec_options=bson.codec_options.DEFAULT_CODEC_OPTIONS):
         self.__raw = bson.BSON(bson_bytes)
         self.__inflated_doc = None
+        self.__codec_options = codec_options
 
     @property
     def raw(self):
@@ -41,7 +37,7 @@ class RawBSONDocument(collections.Mapping):
     @property
     def __inflated(self):
         if self.__inflated_doc is None:
-            self.__inflated_doc = self.__raw.decode()
+            self.__inflated_doc = self.__raw.decode(self.__codec_options)
         return self.__inflated_doc
 
     def __getitem__(self, item):

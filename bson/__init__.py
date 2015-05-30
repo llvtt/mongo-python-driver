@@ -134,6 +134,11 @@ def _get_object(data, position, obj_end, opts):
         raise InvalidBSON("bad eoo")
     if end >= obj_end:
         raise InvalidBSON("invalid object length")
+
+    # RAW
+    if _use_raw(opts):
+        return opts.document_class(data[position:obj_end + 1]), obj_end
+
     obj = _elements_to_dict(data, position + 4, end, opts)
 
     position += obj_size
@@ -307,9 +312,6 @@ def _element_to_dict(data, position, obj_end, opts):
 
 def _elements_to_dict(data, position, obj_end, opts):
     """Decode a BSON document."""
-    if _use_raw(opts):
-        # Include EOO.
-        return opts.document_class(data[position:obj_end + 1])
     result = opts.document_class()
     end = obj_end - 1
     while position < end:
@@ -325,10 +327,14 @@ def _bson_to_dict(data, opts):
     except struct.error as exc:
         raise InvalidBSON(str(exc))
     if obj_size != len(data):
-        raise InvalidBSON("invalid object size")
+        raise InvalidBSON("invalid object size: %d != %d"
+                          % (obj_size, len(data)))
     if data[obj_size - 1:obj_size] != b"\x00":
         raise InvalidBSON("bad eoo")
     try:
+        # RAW
+        if _use_raw(opts):
+            return opts.document_class(data)
         return _elements_to_dict(data, 4, obj_size - 1, opts)
     except InvalidBSON:
         raise
@@ -761,10 +767,14 @@ def decode_all(data, codec_options=DEFAULT_CODEC_OPTIONS):
             obj_end = position + obj_size - 1
             if data[obj_end:position + obj_size] != b"\x00":
                 raise InvalidBSON("bad eoo")
-            docs.append(_elements_to_dict(data,
-                                          position + 4,
-                                          obj_end,
-                                          codec_options))
+            if hasattr(codec_options.document_class, '_raw'):
+                docs.append(
+                    codec_options.document_class(data[position:obj_end + 1]))
+            else:
+                docs.append(_elements_to_dict(data,
+                                              position + 4,
+                                              obj_end,
+                                              codec_options))
             position += obj_size
         return docs
     except InvalidBSON:
