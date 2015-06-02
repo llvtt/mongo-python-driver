@@ -353,11 +353,9 @@ def validate_auth_mechanism_properties(option, value):
 
 def validate_document_class(option, value):
     """Validate the document_class option."""
-    if not (issubclass(value, collections.MutableMapping) or
-            issubclass(value, RawBSONDocument)):
-        raise TypeError("%s must be dict, bson.son.SON, "
-                        "bson.raw_bson_document.RawBSONDocument, or"
-                        "a subclass of collections.MutableMapping" % (option,))
+    if not issubclass(value, collections.MutableMapping):
+        raise TypeError("%s must be dict, bson.son.SON, or another "
+                        "sublass of collections.MutableMapping" % (option,))
     return value
 
 
@@ -369,18 +367,12 @@ def validate_is_mapping(option, value):
                         "collections.Mapping" % (option,))
 
 
-# TODO: is this function useful anymore?
 def validate_is_mutable_mapping(option, value):
     """Validate the type of method arguments that expect a mutable document."""
     if not isinstance(value, collections.MutableMapping):
         raise TypeError("%s must be an instance of dict, bson.son.SON, or "
                         "other type that inherits from "
                         "collections.MutableMapping" % (option,))
-
-
-def validate_document_type(option, value):
-    if not isinstance(value, RawBSONDocument):
-        validate_is_mutable_mapping(option, value)
 
 
 def validate_ok_for_replace(replacement):

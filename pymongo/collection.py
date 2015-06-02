@@ -385,7 +385,7 @@ class Collection(common.BaseObject):
                 check_keys=True, manipulate=False, write_concern=None):
         """Internal insert helper."""
         return_one = False
-        if isinstance(docs, (collections.MutableMapping, RawBSONDocument)):
+        if isinstance(docs, collections.MutableMapping):
             return_one = True
             docs = [docs]
 
@@ -461,7 +461,7 @@ class Collection(common.BaseObject):
 
         .. versionadded:: 3.0
         """
-        common.validate_document_type("document", document)
+        common.validate_is_mutable_mapping("document", document)
         if not isinstance(document, RawBSONDocument) and "_id" not in document:
             document["_id"] = ObjectId()
         with self._socket_for_writes() as sock_info:
@@ -498,7 +498,7 @@ class Collection(common.BaseObject):
         def gen():
             """A generator that validates documents and handles _ids."""
             for document in documents:
-                common.validate_document_type("document", document)
+                common.validate_is_mutable_mapping("document", document)
                 if not isinstance(document, RawBSONDocument):
                     if "_id" not in document:
                         document["_id"] = ObjectId()
