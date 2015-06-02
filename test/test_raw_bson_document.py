@@ -28,6 +28,29 @@ class TestRawBSONDocument(unittest.TestCase):
     def test_raw(self):
         self.assertEqual(self.bson_string, self.document.raw)
 
+    def test_setitem(self):
+        document = RawBSONDocument(self.bson_string)
+        document['foo'] = 'bar'
+        self.assertEqual(
+            (b']\x00\x00\x00\x07_id\x00Um\xf6\x8bn2\xab!\xa9^\x07\x85\x02foo'
+             b'\x00\x04\x00\x00\x00bar\x00\x02name\x00\t\x00\x00\x00Sherlock'
+             b'\x00\x03address\x00\x1e\x00\x00\x00\x02street\x00\r\x00\x00'
+             b'\x00Baker Street\x00\x00\x00'),
+            document.raw
+        )
+        self.assertEqual(4, len(document))
+
+    def test_delitem(self):
+        document = RawBSONDocument(self.bson_string)
+        self.assertEqual('Sherlock', document.pop('name'))
+        self.assertEqual(2, len(document))
+        self.assertEqual(
+            (b'=\x00\x00\x00\x07_id\x00Um\xf6\x8bn2\xab!\xa9^\x07\x85'
+             b'\x03address\x00\x1e\x00\x00\x00\x02street\x00\r\x00\x00'
+             b'\x00Baker Street\x00\x00\x00'),
+            document.raw
+        )
+
     @client_context.require_connection
     def test_round_trip(self):
         client = pymongo.MongoClient(pair, document_class=RawBSONDocument)
