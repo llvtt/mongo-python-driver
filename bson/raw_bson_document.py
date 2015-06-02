@@ -20,7 +20,7 @@ import bson
 
 
 # TODO: docstrings and stuff.
-class RawBSONDocument(collections.Mapping):
+class RawBSONDocument(collections.MutableMapping):
 
     _raw = True
 
@@ -29,9 +29,15 @@ class RawBSONDocument(collections.Mapping):
         self.__raw = bson.BSON(bson_bytes)
         self.__inflated_doc = None
         self.__codec_options = codec_options
+        self.__dirty = False
 
     @property
     def raw(self):
+        if self.__dirty:
+            self.__raw = bson.BSON.encode(
+                self.__inflated_doc,
+                codec_options=self.__codec_options)
+        self.__dirty = False
         return self.__raw
 
     @property
@@ -43,7 +49,19 @@ class RawBSONDocument(collections.Mapping):
     def __getitem__(self, item):
         return self.__inflated[item]
 
+    def __setitem__(self, item, value):
+        self.__inflated[item] = value
+        self.__dirty = True
+
+    def __delitem__(self, item):
+        del self.__inflated[item]
+        self.__dirty = True
+
+    # TODO: could implement efficient __hasitem__
+
     def __len__(self):
+        if self.__dirty:
+            return len(self.__inflated)
         # TODO: don't need to inflate for this.
         return len(self.__inflated)
 
