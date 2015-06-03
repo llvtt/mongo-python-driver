@@ -135,10 +135,6 @@ def _get_object(data, position, obj_end, opts):
     if end >= obj_end:
         raise InvalidBSON("invalid object length")
 
-    # RAW
-    if _use_raw(opts):
-        return opts.document_class(data[position:obj_end + 1]), obj_end
-
     obj = _elements_to_dict(data, position + 4, end, opts)
 
     position += obj_size

@@ -51,6 +51,7 @@ struct module_state {
     PyTypeObject* REType;
     PyObject* BSONInt64;
     PyObject* Mapping;
+    PyObject* RawBSONDocument;
 };
 
 /* The Py_TYPE macro was introduced in CPython 2.6 */
@@ -311,6 +312,7 @@ _in_main_interpreter(void) {
     return (main_interpreter == PyThreadState_Get()->interp);
 }
 
+// NEEDS MODIFICATION
 /*
  * Get a reference to a pure python type. If we are in the
  * main interpreter return the cached object, otherwise import
@@ -369,7 +371,8 @@ static int _load_python_objects(PyObject* module) {
         _load_object(&state->Regex, "bson.regex", "Regex") ||
         _load_object(&state->BSONInt64, "bson.int64", "Int64") ||
         _load_object(&state->UUID, "uuid", "UUID") ||
-        _load_object(&state->Mapping, "collections", "Mapping")) {
+        _load_object(&state->Mapping, "collections", "Mapping") ||
+        _load_object(&state->RawBSONDocument, "bson.raw_bson_document", "RawBSONDocument")) {
         return 1;
     }
     /* Reload our REType hack too. */
@@ -2293,6 +2296,7 @@ static PyObject* elements_to_dict(PyObject* self, const char* string,
     return result;
 }
 
+// NEEDS MODIFICATION
 static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     int size;
     Py_ssize_t total_size;
@@ -2373,11 +2377,14 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
         return NULL;
     }
 
+    // Short circuit, if using RawBSONObject.
+
     result = elements_to_dict(self, string + 4, (unsigned)size - 5, &options);
     destroy_codec_options(&options);
     return result;
 }
 
+// NEEDS MODIFICATION
 static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
     int size;
     Py_ssize_t total_size;

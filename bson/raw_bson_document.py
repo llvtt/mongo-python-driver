@@ -37,7 +37,7 @@ class RawBSONDocument(collections.MutableMapping):
             self.__raw = bson.BSON.encode(
                 self.__inflated_doc,
                 codec_options=self.__codec_options)
-        self.__dirty = False
+            self.__dirty = False
         return self.__raw
 
     @property
