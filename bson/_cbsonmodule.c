@@ -2304,6 +2304,7 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     PyObject* bson;
     codec_options_t options;
     PyObject* result;
+    PyObject* raw_bson_document_bytes;
 
     if (!PyArg_ParseTuple(
             args, "OO&", &bson, convert_codec_options, &options)) {
@@ -2377,7 +2378,15 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
         return NULL;
     }
 
-    // Short circuit, if using RawBSONObject.
+    // Short circuit, if using RawBSONDocument.
+    if (options.document_class == GETSTATE(self)->RawBSONDocument) {
+        // Copy the BSON byte string into the new RawBSONDocument.
+        raw_bson_document_bytes = PyString_FromStringAndSize(string, size);
+        // TODO: check error?
+        // TODO: pass in codec options.
+        return PyObject_CallFunctionObjArgs(
+            options.document_class, raw_bson_document_bytes, NULL);
+    }
 
     result = elements_to_dict(self, string + 4, (unsigned)size - 5, &options);
     destroy_codec_options(&options);
@@ -2393,6 +2402,7 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
     PyObject* dict;
     PyObject* result;
     codec_options_t options;
+    PyObject* raw_bson_document_bytes;  /* not sure if this is right */
 
     if (!PyArg_ParseTuple(
             args, "O|O&",
@@ -2476,7 +2486,14 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
             return NULL;
         }
 
-        dict = elements_to_dict(self, string + 4, (unsigned)size - 5, &options);
+        /* Short-circuit if we are using RawBSONDocument. */
+        if (options.document_class == GETSTATE(self)->RawBSONDocument) {
+            raw_bson_document_bytes = PyString_FromStringAndSize(string, size);
+            dict = PyObject_CallFunctionObjArgs(
+                options.document_class, raw_bson_document_bytes, NULL);
+        } else {
+            dict = elements_to_dict(self, string + 4, (unsigned)size - 5, &options);
+        }
         if (!dict) {
             Py_DECREF(result);
             destroy_codec_options(&options);
