@@ -312,7 +312,6 @@ _in_main_interpreter(void) {
     return (main_interpreter == PyThreadState_Get()->interp);
 }
 
-// NEEDS MODIFICATION
 /*
  * Get a reference to a pure python type. If we are in the
  * main interpreter return the cached object, otherwise import
@@ -2296,7 +2295,6 @@ static PyObject* elements_to_dict(PyObject* self, const char* string,
     return result;
 }
 
-// NEEDS MODIFICATION
 static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     int size;
     Py_ssize_t total_size;
@@ -2305,9 +2303,10 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     codec_options_t options;
     PyObject* result;
     PyObject* raw_bson_document_bytes;
+    PyObject* options_obj;
 
-    if (!PyArg_ParseTuple(
-            args, "OO&", &bson, convert_codec_options, &options)) {
+    if (! (PyArg_ParseTuple(args, "OO", &bson, &options_obj) &&
+            convert_codec_options(options_obj, &options))) {
         return NULL;
     }
 
@@ -2381,11 +2380,18 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     // Short circuit, if using RawBSONDocument.
     if (options.document_class == GETSTATE(self)->RawBSONDocument) {
         // Copy the BSON byte string into the new RawBSONDocument.
+#if PY_MAJOR_VERSION >= 3
+        raw_bson_document_bytes = PyBytes_FromStringAndSize(string, size);
+#else
         raw_bson_document_bytes = PyString_FromStringAndSize(string, size);
-        // TODO: check error?
-        // TODO: pass in codec options.
+#endif
+        if (NULL == raw_bson_document_bytes) {
+            destroy_codec_options(&options);
+            return NULL;
+        }
+
         return PyObject_CallFunctionObjArgs(
-            options.document_class, raw_bson_document_bytes, NULL);
+            options.document_class, raw_bson_document_bytes, options_obj, NULL);
     }
 
     result = elements_to_dict(self, string + 4, (unsigned)size - 5, &options);
@@ -2393,7 +2399,6 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     return result;
 }
 
-// NEEDS MODIFICATION
 static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
     int size;
     Py_ssize_t total_size;
@@ -2402,16 +2407,16 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
     PyObject* dict;
     PyObject* result;
     codec_options_t options;
-    PyObject* raw_bson_document_bytes;  /* not sure if this is right */
+    PyObject* options_obj;
+    PyObject* raw_bson_document_bytes;
 
-    if (!PyArg_ParseTuple(
-            args, "O|O&",
-            &bson, convert_codec_options, &options)) {
+    if (!PyArg_ParseTuple(args, "O|O", &bson, &options_obj)) {
         return NULL;
     }
-
     if (PyTuple_GET_SIZE(args) < 2) {
         default_codec_options(&options);
+    } else if (!convert_codec_options(options_obj, &options)) {
+        return NULL;
     }
 
 #if PY_MAJOR_VERSION >= 3
@@ -2488,9 +2493,17 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
 
         /* Short-circuit if we are using RawBSONDocument. */
         if (options.document_class == GETSTATE(self)->RawBSONDocument) {
-            raw_bson_document_bytes = PyString_FromStringAndSize(string, size);
+#if PY_MAJOR_VERSION >= 3
+            raw_bson_document_bytes = PyBytes_FromStringAndSize(string, size);
+#else
+            raw_bson_document_bytes = PyString_FromStringAndSize(string,  size);
+#endif
+            if (NULL == raw_bson_document_bytes) {
+                destroy_codec_options(&options);
+                return NULL;
+            }
             dict = PyObject_CallFunctionObjArgs(
-                options.document_class, raw_bson_document_bytes, NULL);
+                options.document_class, raw_bson_document_bytes, options_obj, NULL);
         } else {
             dict = elements_to_dict(self, string + 4, (unsigned)size - 5, &options);
         }
