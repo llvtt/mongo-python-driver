@@ -12,23 +12,38 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""BSONDocument class for representing raw BSON documents."""
+"""Tools for accessing raw BSON composing MongoDB documents."""
 
 import collections
 
 import bson
 
 
-# TODO: docstrings and stuff.
 class RawBSONDocument(collections.MutableMapping):
+    """Representation for a MongoDB document that provides access to the raw
+    BSON bytes that compose it.
+
+    Only when a field is accessed or modified within the document does
+    RawBSONDocument decode its bytes. Similarly, only when the underlying bytes
+    are accessed does RawBSONDocument re-encode any modifications made.
+    """
 
     _raw = True
 
     def __init__(self, bson_bytes,
                  codec_options=bson.codec_options.DEFAULT_CODEC_OPTIONS):
+        """Create a new :class:`RawBSONDocument`.
+
+        :Parameters:
+          - `bson_bytes`: the BSON bytes that compose this document
+          - `codec_options` (optional): An instance of
+            :class:`~bson.codec_options.CodecOptions`. RawBSONDocument does not
+            respect the `document_class` attribute of `codec_options` when
+            decoding its bytes and always uses a `dict` for this purpose.
+        """
         self.__raw = bson.BSON(bson_bytes)
         self.__inflated_doc = None
-        # Don't let codec_options provide our own class as document_class.
+        # Don't let codec_options use RawBSONDocument as the document_class.
         self.__codec_options = bson.codec_options.CodecOptions(
             tz_aware=codec_options.tz_aware,
             uuid_representation=codec_options.uuid_representation)
@@ -36,6 +51,7 @@ class RawBSONDocument(collections.MutableMapping):
 
     @property
     def raw(self):
+        """The raw BSON bytes composing this document."""
         if self.__dirty:
             self.__raw = bson.BSON.encode(
                 self.__inflated_doc,
@@ -61,9 +77,6 @@ class RawBSONDocument(collections.MutableMapping):
         self.__dirty = True
 
     def __len__(self):
-        if self.__dirty:
-            return len(self.__inflated)
-        # TODO: don't need to inflate for this.
         return len(self.__inflated)
 
     def __iter__(self):
