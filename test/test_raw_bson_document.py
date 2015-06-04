@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 import pymongo
@@ -63,8 +64,8 @@ class TestRawBSONDocument(unittest.TestCase):
         self.assertEqual(self.document, result)
 
     def test_with_codec_options(self):
-        # {'date': datetime.datetime(2015, 6, 3, 18, 40, 50, 826950),
-        #  '_id': UUID('026fab8f-975f-4965-9fbf-85ad874c60ff')}
+        # {u'date': datetime.datetime(2015, 6, 3, 18, 40, 50, 826000),
+        #  u'_id': UUID('026fab8f-975f-4965-9fbf-85ad874c60ff')}
         # encoded with JAVA_LEGACY uuid representation.
         bson_string = (
             b'-\x00\x00\x00\x05_id\x00\x10\x00\x00\x00\x03eI_\x97\x8f\xabo\x02'
@@ -77,3 +78,20 @@ class TestRawBSONDocument(unittest.TestCase):
 
         self.assertEqual(uuid.UUID('026fab8f-975f-4965-9fbf-85ad874c60ff'),
                          document['_id'])
+
+    @client_context.require_connection
+    def test_round_trip_codec_options(self):
+        doc = {
+            'date': datetime.datetime(2015, 6, 3, 18, 40, 50, 826000),
+            '_id': uuid.UUID('026fab8f-975f-4965-9fbf-85ad874c60ff')
+        }
+        db = pymongo.MongoClient(pair).pymongo_test
+        coll = db.get_collection(
+            'test_raw',
+            codec_options=CodecOptions(uuid_representation=JAVA_LEGACY))
+        coll.insert_one(doc)
+        coll = db.get_collection(
+            'test_raw',
+            codec_options=CodecOptions(uuid_representation=JAVA_LEGACY,
+                                       document_class=RawBSONDocument))
+        self.assertEqual(doc, coll.find_one())
