@@ -28,7 +28,10 @@ class RawBSONDocument(collections.MutableMapping):
                  codec_options=bson.codec_options.DEFAULT_CODEC_OPTIONS):
         self.__raw = bson.BSON(bson_bytes)
         self.__inflated_doc = None
-        self.__codec_options = codec_options
+        # Don't let codec_options provide our own class as document_class.
+        self.__codec_options = bson.codec_options.CodecOptions(
+            tz_aware=codec_options.tz_aware,
+            uuid_representation=codec_options.uuid_representation)
         self.__dirty = False
 
     @property
@@ -57,8 +60,6 @@ class RawBSONDocument(collections.MutableMapping):
         del self.__inflated[item]
         self.__dirty = True
 
-    # TODO: could implement efficient __hasitem__
-
     def __len__(self):
         if self.__dirty:
             return len(self.__inflated)
@@ -67,3 +68,9 @@ class RawBSONDocument(collections.MutableMapping):
 
     def __iter__(self):
         return iter(self.__inflated)
+
+    def __cmp__(self, other):
+        return cmp(self.__inflated, other)
+
+    def __repr__(self):
+        return repr(self.__inflated)
