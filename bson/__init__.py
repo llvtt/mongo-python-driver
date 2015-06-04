@@ -93,6 +93,7 @@ _UNPACK_TIMESTAMP = struct.Struct("<II").unpack
 
 
 def _use_raw(options):
+    """Return whether options specifies RawBSONDocument as document_class."""
     return hasattr(options.document_class, '_raw')
 
 
@@ -134,7 +135,6 @@ def _get_object(data, position, obj_end, opts):
         raise InvalidBSON("bad eoo")
     if end >= obj_end:
         raise InvalidBSON("invalid object length")
-
     obj = _elements_to_dict(data, position + 4, end, opts)
 
     position += obj_size
@@ -327,7 +327,6 @@ def _bson_to_dict(data, opts):
     if data[obj_size - 1:obj_size] != b"\x00":
         raise InvalidBSON("bad eoo")
     try:
-        # RAW
         if _use_raw(opts):
             return opts.document_class(data)
         return _elements_to_dict(data, 4, obj_size - 1, opts)
