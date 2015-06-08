@@ -65,8 +65,29 @@ class RawBSONDocument(collections.MutableMapping):
             self.__inflated_doc = self.__raw.decode(self.__codec_options)
         return self.__inflated_doc
 
+    def _items(self):
+        obj_end = bson.object_size(self.raw)
+        position = 4
+        while position < obj_end:
+            name, value, position = bson._element_to_dict(
+                self.raw, position, obj_end, self.__codec_options)
+            yield name, value
+
+    def __hasitem__(self, item):
+        if self.__dirty:
+            return item in self.__inflated_doc
+        for name, value in self._items():
+            if name == item:
+                return True
+        return False
+
     def __getitem__(self, item):
-        return self.__inflated[item]
+        if self.__dirty:
+            return self.__inflated_doc[item]
+        for name, value in self._items():
+            if name == item:
+                return value
+        raise KeyError(item)
 
     def __setitem__(self, item, value):
         self.__inflated[item] = value

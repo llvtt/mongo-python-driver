@@ -718,6 +718,16 @@ _CODEC_OPTIONS_TYPE_ERROR = TypeError(
     "codec_options must be an instance of CodecOptions")
 
 
+def object_size(data):
+    obj_size = _UNPACK_INT(data[:4])[0]
+    if len(data) < obj_size:
+        raise InvalidBSON("invalid object size")
+    obj_end = obj_size - 1
+    if data[obj_end:obj_size] != b"\x00":
+        raise InvalidBSON("bad eoo")
+    return obj_size
+
+
 def decode_all(data, codec_options=DEFAULT_CODEC_OPTIONS):
     """Decode BSON data to multiple documents.
 
