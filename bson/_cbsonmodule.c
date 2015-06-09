@@ -2271,7 +2271,7 @@ static int _element_to_dict(PyObject* self, const char* string,
 static PyObject* _cbson_element_to_dict(PyObject* self, PyObject* args) {
     char* string;
     PyObject* bson;
-    codec_options_t* options;
+    codec_options_t options;
     unsigned position;
     PyObject* position_obj;
     unsigned max;
@@ -2303,13 +2303,13 @@ static PyObject* _cbson_element_to_dict(PyObject* self, PyObject* args) {
     string = PyString_AsString(bson);
 #endif
 
-    new_position = _element_to_dict(self, string, position, max, options,
+    new_position = _element_to_dict(self, string, position, max, &options,
                                     &name, &value);
     if (new_position < 0) {
         return NULL;
     }
 
-#ifdef PY_MAJOR_VERSION >= 3
+#if PY_MAJOR_VERSION >= 3
     position_obj = PyLong_FromLong(new_position);
 #else
     position_obj = PyInt_FromLong(new_position);

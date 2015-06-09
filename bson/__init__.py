@@ -328,7 +328,7 @@ def _bson_to_dict(data, opts):
         raise InvalidBSON("bad eoo")
     try:
         if _use_raw(opts):
-            return opts.document_class(data)
+            return opts.document_class(data, opts)
         return _elements_to_dict(data, 4, obj_size - 1, opts)
     except InvalidBSON:
         raise
@@ -773,7 +773,8 @@ def decode_all(data, codec_options=DEFAULT_CODEC_OPTIONS):
                 raise InvalidBSON("bad eoo")
             if hasattr(codec_options.document_class, '_raw'):
                 docs.append(
-                    codec_options.document_class(data[position:obj_end + 1]))
+                    codec_options.document_class(
+                        data[position:obj_end + 1], codec_options))
             else:
                 docs.append(_elements_to_dict(data,
                                               position + 4,
