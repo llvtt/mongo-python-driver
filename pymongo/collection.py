@@ -402,7 +402,7 @@ class Collection(common.BaseObject):
                     # operations is required for backwards compatibility,
                     # see PYTHON-709.
                     doc = _db._apply_incoming_manipulators(doc, self)
-                    if '_id' not in doc:
+                    if not (isinstance(doc, RawBSONDocument) or '_id' in doc):
                         doc['_id'] = ObjectId()
 
                     doc = _db._apply_incoming_copying_manipulators(doc, self)
@@ -499,9 +499,9 @@ class Collection(common.BaseObject):
             """A generator that validates documents and handles _ids."""
             for document in documents:
                 common.validate_is_mutable_mapping("document", document)
-                if not isinstance(document, RawBSONDocument):
-                    if "_id" not in document:
-                        document["_id"] = ObjectId()
+                if not (isinstance(document, RawBSONDocument)
+                        or "_id" in document):
+                    document["_id"] = ObjectId()
                 inserted_ids.append(document["_id"])
                 yield (_INSERT, document)
 
@@ -1900,7 +1900,7 @@ class Collection(common.BaseObject):
             write_concern = WriteConcern(**kwargs)
 
         with self._socket_for_writes() as sock_info:
-            if "_id" not in to_save:
+            if not (isinstance(to_save, RawBSONDocument) or "_id" in to_save):
                 return self._insert(sock_info, to_save, True,
                                     check_keys, manipulate, write_concern)
             else:

@@ -92,11 +92,6 @@ _UNPACK_LONG = struct.Struct("<q").unpack
 _UNPACK_TIMESTAMP = struct.Struct("<II").unpack
 
 
-def _use_raw(options):
-    """Return whether options specifies RawBSONDocument as document_class."""
-    return hasattr(options.document_class, '_raw')
-
-
 def _get_int(data, position, dummy0, dummy1):
     """Decode a BSON int32 to python int."""
     end = position + 4
@@ -327,8 +322,8 @@ def _bson_to_dict(data, opts):
     if data[obj_size - 1:obj_size] != b"\x00":
         raise InvalidBSON("bad eoo")
     try:
-        if _use_raw(opts):
-            return opts.document_class(data, opts)
+        if issubclass(opts.document_class, RawBSONDocument):
+            return RawBSONDocument(data, opts)
         return _elements_to_dict(data, 4, obj_size - 1, opts)
     except InvalidBSON:
         raise
@@ -771,10 +766,9 @@ def decode_all(data, codec_options=DEFAULT_CODEC_OPTIONS):
             obj_end = position + obj_size - 1
             if data[obj_end:position + obj_size] != b"\x00":
                 raise InvalidBSON("bad eoo")
-            if hasattr(codec_options.document_class, '_raw'):
+            if issubclass(codec_options, RawBSONDocument):
                 docs.append(
-                    codec_options.document_class(
-                        data[position:obj_end + 1], codec_options))
+                    RawBSONDocument(data[position:obj_end + 1], codec_options))
             else:
                 docs.append(_elements_to_dict(data,
                                               position + 4,
@@ -953,6 +947,95 @@ class BSON(bytes):
             raise _CODEC_OPTIONS_TYPE_ERROR
 
         return _bson_to_dict(self, codec_options)
+
+
+class RawBSONDocument(collections.MutableMapping):
+    """Representation for a MongoDB document that provides access to the raw
+    BSON bytes that compose it.
+
+    Only when a field is accessed or modified within the document does
+    RawBSONDocument decode its bytes. Similarly, only when the underlying bytes
+    are accessed does RawBSONDocument re-encode any modifications made.
+    """
+
+    def __init__(self, bson_bytes, codec_options=DEFAULT_CODEC_OPTIONS):
+        """Create a new :class:`RawBSONDocument`.
+
+        :Parameters:
+          - `bson_bytes`: the BSON bytes that compose this document
+          - `codec_options` (optional): An instance of
+            :class:`~bson.codec_options.CodecOptions`. RawBSONDocument does not
+            respect the `document_class` attribute of `codec_options` when
+            decoding its bytes and always uses a `dict` for this purpose.
+        """
+        self.__raw = BSON(bson_bytes)
+        self.__inflated_doc = None
+        # Don't let codec_options use RawBSONDocument as the document_class.
+        self.__codec_options = CodecOptions(
+            tz_aware=codec_options.tz_aware,
+            uuid_representation=codec_options.uuid_representation)
+        self.__dirty = False
+
+    @property
+    def raw(self):
+        """The raw BSON bytes composing this document."""
+        if self.__dirty:
+            self.__raw = BSON.encode(
+                self.__inflated_doc,
+                codec_options=self.__codec_options)
+            self.__dirty = False
+        return self.__raw
+
+    @property
+    def __inflated(self):
+        if self.__inflated_doc is None:
+            self.__inflated_doc = self.__raw.decode(self.__codec_options)
+        return self.__inflated_doc
+
+    def _items(self):
+        obj_end = object_size(self.raw)
+        # Skip the document size header.
+        position = 4
+        while position < obj_end:
+            name, value, position = _element_to_dict(
+                self.raw, position, obj_end, self.__codec_options)
+            yield name, value
+
+    def __hasitem__(self, item):
+        if self.__dirty:
+            return item in self.__inflated_doc
+        for name, value in self._items():
+            if name == item:
+                return True
+        return False
+
+    def __getitem__(self, item):
+        if self.__dirty:
+            return self.__inflated_doc[item]
+        for name, value in self._items():
+            if name == item:
+                return value
+        raise KeyError(item)
+
+    def __setitem__(self, item, value):
+        self.__inflated[item] = value
+        self.__dirty = True
+
+    def __delitem__(self, item):
+        del self.__inflated[item]
+        self.__dirty = True
+
+    def __len__(self):
+        return len(self.__inflated)
+
+    def __iter__(self):
+        return iter(self.__inflated)
+
+    def __cmp__(self, other):
+        return cmp(self.__inflated, other)
+
+    def __repr__(self):
+        return repr(self.__inflated)
 
 
 def has_c():
