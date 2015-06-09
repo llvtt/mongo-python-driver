@@ -2268,6 +2268,70 @@ static int _element_to_dict(PyObject* self, const char* string,
     return position;
 }
 
+static PyObject* _cbson_element_to_dict(PyObject* self, PyObject* args) {
+    char* string;
+    PyObject* bson;
+    codec_options_t* options;
+    unsigned position;
+    PyObject* position_obj;
+    unsigned max;
+    int new_position;
+    PyObject* name;
+    PyObject* value;
+    PyObject* result_tuple;
+
+    if (!PyArg_ParseTuple(args, "OII|O&", &bson, &position, &max,
+                          convert_codec_options, &options)) {
+        return NULL;
+    }
+    if (PyTuple_GET_SIZE(args) < 4) {
+        default_codec_options(&options);
+    }
+
+#if PY_MAJOR_VERSION >= 3
+    if (!PyBytes_Check(bson)) {
+        PyErr_SetString(PyExc_TypeError, "argument to decode_all must be a bytes object");
+#else
+    if (!PyString_Check(bson)) {
+        PyErr_SetString(PyExc_TypeError, "argument to decode_all must be a string");
+#endif
+        return NULL;
+    }
+#if PY_MAJOR_VERSION >= 3
+    string = PyBytes_AsString(bson);
+#else
+    string = PyString_AsString(bson);
+#endif
+
+    new_position = _element_to_dict(self, string, position, max, options,
+                                    &name, &value);
+    if (new_position < 0) {
+        return NULL;
+    }
+
+#ifdef PY_MAJOR_VERSION >= 3
+    position_obj = PyLong_FromLong(new_position);
+#else
+    position_obj = PyInt_FromLong(new_position);
+#endif
+    if (!position_obj) {
+        Py_DECREF(name);
+        Py_DECREF(value);
+        /* todo: error message */
+        return NULL;
+    }
+
+    result_tuple = PyTuple_Pack(3, name, value, position_obj);
+    if (!result_tuple) {
+        Py_DECREF(name);
+        Py_DECREF(value);
+        Py_DECREF(position_obj);
+        return NULL;
+    }
+    
+    return result_tuple;
+}
+
 static PyObject* _elements_to_dict(PyObject* self, const char* string,
                                    unsigned max,
                                    const codec_options_t* options) {
@@ -2542,6 +2606,8 @@ static PyMethodDef _CBSONMethods[] = {
      "convert a BSON string to a SON object."},
     {"decode_all", _cbson_decode_all, METH_VARARGS,
      "convert binary data to a sequence of documents."},
+    {"_element_to_dict", _cbson_element_to_dict, METH_VARARGS,
+     "Decode a single key, value pair."},
     {NULL, NULL, 0, NULL}
 };
 
