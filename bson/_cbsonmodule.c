@@ -2317,7 +2317,6 @@ static PyObject* _cbson_element_to_dict(PyObject* self, PyObject* args) {
     if (!position_obj) {
         Py_DECREF(name);
         Py_DECREF(value);
-        /* todo: error message */
         return NULL;
     }
 

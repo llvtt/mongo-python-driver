@@ -993,6 +993,7 @@ class RawBSONDocument(collections.MutableMapping):
         return self.__inflated_doc
 
     def _items(self):
+        """Lazily decode and iterate elements in this document."""
         obj_end = object_size(self.raw)
         # Skip the document size header.
         position = 4
