@@ -766,7 +766,7 @@ def decode_all(data, codec_options=DEFAULT_CODEC_OPTIONS):
             obj_end = position + obj_size - 1
             if data[obj_end:position + obj_size] != b"\x00":
                 raise InvalidBSON("bad eoo")
-            if issubclass(codec_options, RawBSONDocument):
+            if issubclass(codec_options.document_class, RawBSONDocument):
                 docs.append(
                     RawBSONDocument(data[position:obj_end + 1], codec_options))
             else:
