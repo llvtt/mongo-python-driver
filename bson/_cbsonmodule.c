@@ -2240,10 +2240,39 @@ static PyObject* get_value(PyObject* self, const char* buffer,
     return NULL;
 }
 
+static int _element_to_dict(PyObject* self, const char* string,
+                            unsigned position, unsigned max,
+                            const codec_options_t* options,
+                            PyObject** name, PyObject** value) {
+    unsigned char type = (unsigned char)string[position++];
+    size_t name_length = strlen(string + position);
+    if (name_length > BSON_MAX_SIZE || position + name_length >= max) {
+        PyObject* InvalidBSON = _error("InvalidBSON");
+        if (InvalidBSON) {
+            PyErr_SetNone(InvalidBSON);
+            Py_DECREF(InvalidBSON);
+        }
+        return -1;
+    }
+    *name = PyUnicode_DecodeUTF8(string + position, name_length, "strict");
+    if (!*name) {
+        return -1;
+    }
+    position += (unsigned)name_length + 1;
+    *value = get_value(self, string, &position, type,
+                       max - position, options);
+    if (!*value) {
+        Py_DECREF(name);
+        return -1;
+    }
+    return position;
+}
+
 static PyObject* _elements_to_dict(PyObject* self, const char* string,
                                    unsigned max,
                                    const codec_options_t* options) {
     unsigned position = 0;
+    int new_position;
     PyObject* dict = PyObject_CallObject(options->document_class, NULL);
     if (!dict) {
         return NULL;
@@ -2252,29 +2281,13 @@ static PyObject* _elements_to_dict(PyObject* self, const char* string,
         PyObject* name;
         PyObject* value;
 
-        unsigned char type = (unsigned char)string[position++];
-        size_t name_length = strlen(string + position);
-        if (name_length > BSON_MAX_SIZE || position + name_length >= max) {
-            PyObject* InvalidBSON = _error("InvalidBSON");
-            if (InvalidBSON) {
-                PyErr_SetNone(InvalidBSON);
-                Py_DECREF(InvalidBSON);
-            }
+        new_position = _element_to_dict(self, string, position, max,
+                                        options, &name, &value);
+        if (new_position < 0) {
             Py_DECREF(dict);
             return NULL;
-        }
-        name = PyUnicode_DecodeUTF8(string + position, name_length, "strict");
-        if (!name) {
-            Py_DECREF(dict);
-            return NULL;
-        }
-        position += (unsigned)name_length + 1;
-        value = get_value(self, string, &position, type,
-                          max - position, options);
-        if (!value) {
-            Py_DECREF(name);
-            Py_DECREF(dict);
-            return NULL;
+        } else {
+            position = new_position;
         }
 
         PyObject_SetItem(dict, name, value);
