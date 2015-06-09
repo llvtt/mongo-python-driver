@@ -67,6 +67,7 @@ class RawBSONDocument(collections.MutableMapping):
 
     def _items(self):
         obj_end = bson.object_size(self.raw)
+        # Skip the document size header.
         position = 4
         while position < obj_end:
             name, value, position = bson._element_to_dict(
