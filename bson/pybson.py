@@ -936,13 +936,7 @@ class RawBSONDocument(collections.MutableMapping):
     are accessed does RawBSONDocument re-encode any modifications made.
     """
 
-    # Try to take advantage of C extensions when decoding, but avoid circular
-    # import that will happen when importing at top-level.
-    try:
-        from bson import _cbson
-        __use_cbson = True
-    except ImportError:
-        __use_cbson = False
+    _decode_element_func = None
 
     def __init__(self, bson_bytes, codec_options=DEFAULT_CODEC_OPTIONS):
         """Create a new :class:`RawBSONDocument`.
@@ -961,11 +955,6 @@ class RawBSONDocument(collections.MutableMapping):
             tz_aware=codec_options.tz_aware,
             uuid_representation=codec_options.uuid_representation)
         self.__dirty = False
-        # Dynamically determine whether to use C extensions.
-        if self.__use_cbson:
-            self.__next_element = _cbson._element_to_dict
-        else:
-            self.__next_element = _element_to_dict
 
     @property
     def raw(self):
@@ -989,6 +978,14 @@ class RawBSONDocument(collections.MutableMapping):
             for name, value in iteritems(self.__inflated_doc):
                 yield name, value
         else:
+            if self._decode_element_func is None:
+                # Dynamically determine whether to use C extensions.
+                try:
+                    from bson import _cbson
+                    self._decode_element_func = _cbson._element_to_dict
+                except ImportError:
+                    self._decode_element_func = _element_to_dict
+
             obj_size = _UNPACK_INT(self.__raw[:4])[0]
             if len(self.__raw) < obj_size:
                 raise InvalidBSON("invalid object size")
@@ -999,7 +996,7 @@ class RawBSONDocument(collections.MutableMapping):
             # Skip the document size header.
             position = 4
             while position < obj_end:
-                name, value, position = self.__next_element(
+                name, value, position = self._decode_element_func(
                     self.raw, position, obj_size, self.__codec_options)
                 yield name, value
 
