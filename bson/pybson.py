@@ -702,16 +702,6 @@ _CODEC_OPTIONS_TYPE_ERROR = TypeError(
     "codec_options must be an instance of CodecOptions")
 
 
-def object_size(data):
-    obj_size = _UNPACK_INT(data[:4])[0]
-    if len(data) < obj_size:
-        raise InvalidBSON("invalid object size")
-    obj_end = obj_size - 1
-    if data[obj_end:obj_size] != b"\x00":
-        raise InvalidBSON("bad eoo")
-    return obj_size
-
-
 def decode_all(data, codec_options=DEFAULT_CODEC_OPTIONS):
     """Decode BSON data to multiple documents.
 
@@ -979,13 +969,22 @@ class RawBSONDocument(collections.MutableMapping):
 
     def _items(self):
         """Lazily decode and iterate elements in this document."""
-        obj_end = object_size(self.raw)
-        # Skip the document size header.
-        position = 4
-        while position < obj_end:
-            name, value, position = _element_to_dict(
-                self.raw, position, obj_end, self.__codec_options)
-            yield name, value
+        if self.__inflated_doc is not None:
+            for name, value in iteritems(self.__inflated_doc):
+                yield name, value
+        else:
+            obj_size = _UNPACK_INT(self.__raw[:4])[0]
+            if len(self.__raw) < obj_size:
+                raise InvalidBSON("invalid object size")
+            if self.__raw[obj_size - 1:obj_size] != b"\x00":
+                raise InvalidBSON("bad eoo")
+
+            # Skip the document size header.
+            position = 4
+            while position < obj_size:
+                name, value, position = _element_to_dict(
+                    self.raw, position, obj_size, self.__codec_options)
+                yield name, value
 
     def __hasitem__(self, item):
         if self.__dirty:
@@ -1015,7 +1014,8 @@ class RawBSONDocument(collections.MutableMapping):
         return len(self.__inflated)
 
     def __iter__(self):
-        return iter(self.__inflated)
+        for name, _ in self._items():
+            yield name
 
     def __cmp__(self, other):
         return cmp(self.__inflated, other)
