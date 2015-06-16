@@ -2327,7 +2327,7 @@ static PyObject* _cbson_element_to_dict(PyObject* self, PyObject* args) {
         Py_DECREF(position_obj);
         return NULL;
     }
-    
+
     return result_tuple;
 }
 

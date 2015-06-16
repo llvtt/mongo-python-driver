@@ -23,6 +23,7 @@ MongoDB.
 import random
 import struct
 
+import bson
 from bson import pybson
 from bson.codec_options import DEFAULT_CODEC_OPTIONS
 from bson.py3compat import b, StringIO
@@ -157,7 +158,7 @@ def insert(collection_name, docs, check_keys,
         options += 1
     data = struct.pack("<i", options)
     data += pybson._make_c_string(collection_name)
-    encoded = [pybson.BSON.encode(doc, check_keys, opts) for doc in docs]
+    encoded = [bson.BSON.encode(doc, check_keys, opts) for doc in docs]
     if not encoded:
         raise InvalidOperation("cannot do an empty bulk insert")
     max_bson_size = max(map(len, encoded))
@@ -187,8 +188,8 @@ def update(collection_name, upsert, multi,
     data = _ZERO_32
     data += pybson._make_c_string(collection_name)
     data += struct.pack("<i", options)
-    data += pybson.BSON.encode(spec, False, opts)
-    encoded = pybson.BSON.encode(doc, check_keys, opts)
+    data += bson.BSON.encode(spec, False, opts)
+    encoded = bson.BSON.encode(doc, check_keys, opts)
     data += encoded
     if safe:
         (_, update_message) = __pack_message(2001, data)
@@ -210,11 +211,11 @@ def query(options, collection_name, num_to_skip,
     data += pybson._make_c_string(collection_name)
     data += struct.pack("<i", num_to_skip)
     data += struct.pack("<i", num_to_return)
-    encoded = pybson.BSON.encode(query, False, opts)
+    encoded = bson.BSON.encode(query, False, opts)
     data += encoded
     max_bson_size = len(encoded)
     if field_selector is not None:
-        encoded = pybson.BSON.encode(field_selector, False, opts)
+        encoded = bson.BSON.encode(field_selector, False, opts)
         data += encoded
         max_bson_size = max(len(encoded), max_bson_size)
     (request_id, query_message) = __pack_message(2004, data)
@@ -247,7 +248,7 @@ def delete(collection_name, spec, safe,
     data = _ZERO_32
     data += pybson._make_c_string(collection_name)
     data += struct.pack("<I", flags)
-    encoded = pybson.BSON.encode(spec, False, opts)
+    encoded = bson.BSON.encode(spec, False, opts)
     data += encoded
     if safe:
         (_, remove_message) = __pack_message(2006, data)
@@ -292,7 +293,7 @@ def _do_batched_insert(collection_name, docs, check_keys,
     message_length = begin_loc = data.tell()
     has_docs = False
     for doc in docs:
-        encoded = pybson.BSON.encode(doc, check_keys, opts)
+        encoded = bson.BSON.encode(doc, check_keys, opts)
         encoded_length = len(encoded)
         too_large = (encoded_length > sock_info.max_bson_size)
 
@@ -373,7 +374,7 @@ def _do_batched_write_command(namespace, operation, command,
 
     # Where to write command document length
     command_start = buf.tell()
-    buf.write(pybson.BSON.encode(command))
+    buf.write(bson.BSON.encode(command))
 
     # Start of payload
     buf.seek(-1, 2)
@@ -420,7 +421,7 @@ def _do_batched_write_command(namespace, operation, command,
         has_docs = True
         # Encode the current operation
         key = b(str(idx))
-        value = pybson.BSON.encode(doc, check_keys, opts)
+        value = bson.BSON.encode(doc, check_keys, opts)
         # Send a batch?
         enough_data = (buf.tell() + len(key) + len(value) + 2) >= max_cmd_size
         enough_documents = (idx >= max_write_batch_size)
