@@ -2623,9 +2623,6 @@ static int _cbson_traverse(PyObject *m, visitproc visit, void *arg) {
     Py_VISIT(GETSTATE(m)->MaxKey);
     Py_VISIT(GETSTATE(m)->UTC);
     Py_VISIT(GETSTATE(m)->REType);
-    Py_VISIT(GETSTATE(m)->BSONInt64);
-    Py_VISIT(GETSTATE(m)->Mapping);
-    Py_VISIT(GETSTATE(m)->RawBSONDocument);
     return 0;
 }
 
@@ -2641,9 +2638,6 @@ static int _cbson_clear(PyObject *m) {
     Py_CLEAR(GETSTATE(m)->MaxKey);
     Py_CLEAR(GETSTATE(m)->UTC);
     Py_CLEAR(GETSTATE(m)->REType);
-    Py_VISIT(GETSTATE(m)->BSONInt64);
-    Py_VISIT(GETSTATE(m)->Mapping);
-    Py_VISIT(GETSTATE(m)->RawBSONDocument);
     return 0;
 }
 
