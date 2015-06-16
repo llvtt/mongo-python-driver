@@ -371,7 +371,7 @@ static int _load_python_objects(PyObject* module) {
         _load_object(&state->BSONInt64, "bson.int64", "Int64") ||
         _load_object(&state->UUID, "uuid", "UUID") ||
         _load_object(&state->Mapping, "collections", "Mapping") ||
-        _load_object(&state->RawBSONDocument, "bson.raw_bson_document", "RawBSONDocument")) {
+        _load_object(&state->RawBSONDocument, "bson.pybson", "RawBSONDocument")) {
         return 1;
     }
     /* Reload our REType hack too. */

@@ -23,8 +23,8 @@ from bson.py3compat import (_unicode,
                             integer_types,
                             string_type,
                             u)
+from bson import RawBSONDocument
 from bson.codec_options import CodecOptions
-from bson.raw_bson_document import RawBSONDocument
 from bson.son import SON
 from pymongo import (common,
                      helpers,
