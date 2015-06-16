@@ -462,7 +462,7 @@ class Collection(common.BaseObject):
         .. versionadded:: 3.0
         """
         common.validate_is_mutable_mapping("document", document)
-        if not isinstance(document, RawBSONDocument) and "_id" not in document:
+        if not (isinstance(document, RawBSONDocument) or "_id" in document):
             document["_id"] = ObjectId()
         with self._socket_for_writes() as sock_info:
             return InsertOneResult(self._insert(sock_info, document),
