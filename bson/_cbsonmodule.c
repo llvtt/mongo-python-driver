@@ -2240,6 +2240,12 @@ static PyObject* get_value(PyObject* self, const char* buffer,
     return NULL;
 }
 
+/*
+ * Get the next 'name' and 'value' from a document in a string, whose position
+ * is provided.
+ *
+ * Returns the position of the next element in the document, or -1 on error.
+ */
 static int _element_to_dict(PyObject* self, const char* string,
                             unsigned position, unsigned max,
                             const codec_options_t* options,
