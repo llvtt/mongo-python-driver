@@ -876,6 +876,9 @@ class BSON(bytes):
         if not isinstance(codec_options, CodecOptions):
             raise _CODEC_OPTIONS_TYPE_ERROR
 
+        if isinstance(document, RawBSONDocument):
+            return cls(document.raw)
+
         return cls(_dict_to_bson(document, check_keys, codec_options))
 
     def decode(self, codec_options=DEFAULT_CODEC_OPTIONS):
@@ -933,6 +936,14 @@ class RawBSONDocument(collections.MutableMapping):
     are accessed does RawBSONDocument re-encode any modifications made.
     """
 
+    # Try to take advantage of C extensions when decoding, but avoid circular
+    # import that will happen when importing at top-level.
+    try:
+        from bson import _cbson
+        __use_cbson = True
+    except ImportError:
+        __use_cbson = False
+
     def __init__(self, bson_bytes, codec_options=DEFAULT_CODEC_OPTIONS):
         """Create a new :class:`RawBSONDocument`.
 
@@ -950,6 +961,11 @@ class RawBSONDocument(collections.MutableMapping):
             tz_aware=codec_options.tz_aware,
             uuid_representation=codec_options.uuid_representation)
         self.__dirty = False
+        # Dynamically determine whether to use C extensions.
+        if self.__use_cbson:
+            self.__next_element = _cbson._element_to_dict
+        else:
+            self.__next_element = _element_to_dict
 
     @property
     def raw(self):
@@ -976,13 +992,14 @@ class RawBSONDocument(collections.MutableMapping):
             obj_size = _UNPACK_INT(self.__raw[:4])[0]
             if len(self.__raw) < obj_size:
                 raise InvalidBSON("invalid object size")
-            if self.__raw[obj_size - 1:obj_size] != b"\x00":
+            obj_end = obj_size - 1
+            if self.__raw[obj_end:obj_size] != b"\x00":
                 raise InvalidBSON("bad eoo")
 
             # Skip the document size header.
             position = 4
-            while position < obj_size:
-                name, value, position = _element_to_dict(
+            while position < obj_end:
+                name, value, position = self.__next_element(
                     self.raw, position, obj_size, self.__codec_options)
                 yield name, value
 
