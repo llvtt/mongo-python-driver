@@ -682,6 +682,8 @@ def _element_to_bson(key, value, check_keys, opts):
 
 def _dict_to_bson(doc, check_keys, opts, top_level=True):
     """Encode a document to BSON."""
+    if isinstance(doc, RawBSONDocument):
+        return doc.raw
     try:
         elements = []
         if top_level and "_id" in doc:
@@ -845,88 +847,6 @@ def is_valid(bson):
         return False
 
 
-class BSON(bytes):
-    """BSON (Binary JSON) data.
-    """
-
-    @classmethod
-    def encode(cls, document, check_keys=False,
-               codec_options=DEFAULT_CODEC_OPTIONS):
-        """Encode a document to a new :class:`BSON` instance.
-
-        A document can be any mapping type (like :class:`dict`).
-
-        Raises :class:`TypeError` if `document` is not a mapping type,
-        or contains keys that are not instances of
-        :class:`basestring` (:class:`str` in python 3). Raises
-        :class:`~bson.errors.InvalidDocument` if `document` cannot be
-        converted to :class:`BSON`.
-
-        :Parameters:
-          - `document`: mapping type representing a document
-          - `check_keys` (optional): check if keys start with '$' or
-            contain '.', raising :class:`~bson.errors.InvalidDocument` in
-            either case
-          - `codec_options` (optional): An instance of
-            :class:`~bson.codec_options.CodecOptions`.
-
-        .. versionchanged:: 3.0
-           Replaced `uuid_subtype` option with `codec_options`.
-        """
-        if not isinstance(codec_options, CodecOptions):
-            raise _CODEC_OPTIONS_TYPE_ERROR
-
-        if isinstance(document, RawBSONDocument):
-            return cls(document.raw)
-
-        return cls(_dict_to_bson(document, check_keys, codec_options))
-
-    def decode(self, codec_options=DEFAULT_CODEC_OPTIONS):
-        """Decode this BSON data.
-
-        By default, returns a BSON document represented as a Python
-        :class:`dict`. To use a different :class:`MutableMapping` class,
-        configure a :class:`~bson.codec_options.CodecOptions`::
-
-            >>> import collections  # From Python standard library.
-            >>> import bson
-            >>> from bson.codec_options import CodecOptions
-            >>> data = bson.BSON.encode({'a': 1})
-            >>> decoded_doc = bson.BSON.decode(data)
-            <type 'dict'>
-            >>> options = CodecOptions(document_class=collections.OrderedDict)
-            >>> decoded_doc = bson.BSON.decode(data, codec_options=options)
-            >>> type(decoded_doc)
-            <class 'collections.OrderedDict'>
-
-        :Parameters:
-          - `codec_options` (optional): An instance of
-            :class:`~bson.codec_options.CodecOptions`.
-
-        .. versionchanged:: 3.0
-           Removed `compile_re` option: PyMongo now always represents BSON
-           regular expressions as :class:`~bson.regex.Regex` objects. Use
-           :meth:`~bson.regex.Regex.try_compile` to attempt to convert from a
-           BSON regular expression to a Python regular expression object.
-
-           Replaced `as_class`, `tz_aware`, and `uuid_subtype` options with
-           `codec_options`.
-
-        .. versionchanged:: 2.7
-           Added `compile_re` option. If set to False, PyMongo represented BSON
-           regular expressions as :class:`~bson.regex.Regex` objects instead of
-           attempting to compile BSON regular expressions as Python native
-           regular expressions, thus preventing errors for some incompatible
-           patterns, see `PYTHON-500`_.
-
-        .. _PYTHON-500: https://jira.mongodb.org/browse/PYTHON-500
-        """
-        if not isinstance(codec_options, CodecOptions):
-            raise _CODEC_OPTIONS_TYPE_ERROR
-
-        return _bson_to_dict(self, codec_options)
-
-
 class RawBSONDocument(collections.MutableMapping):
     """Representation for a MongoDB document that provides access to the raw
     BSON bytes that compose it.
@@ -935,8 +855,6 @@ class RawBSONDocument(collections.MutableMapping):
     RawBSONDocument decode its bytes. Similarly, only when the underlying bytes
     are accessed does RawBSONDocument re-encode any modifications made.
     """
-
-    _decode_element_func = None
 
     def __init__(self, bson_bytes, codec_options=DEFAULT_CODEC_OPTIONS):
         """Create a new :class:`RawBSONDocument`.
@@ -948,6 +866,7 @@ class RawBSONDocument(collections.MutableMapping):
             respect the `document_class` attribute of `codec_options` when
             decoding its bytes and always uses a `dict` for this purpose.
         """
+        from bson import BSON
         self.__raw = BSON(bson_bytes)
         self.__inflated_doc = None
         # Don't let codec_options use RawBSONDocument as the document_class.
@@ -960,6 +879,7 @@ class RawBSONDocument(collections.MutableMapping):
     def raw(self):
         """The raw BSON bytes composing this document."""
         if self.__dirty:
+            from bson import BSON
             self.__raw = BSON.encode(
                 self.__inflated_doc,
                 codec_options=self.__codec_options)
@@ -978,14 +898,6 @@ class RawBSONDocument(collections.MutableMapping):
             for name, value in iteritems(self.__inflated_doc):
                 yield name, value
         else:
-            if self._decode_element_func is None:
-                # Dynamically determine whether to use C extensions.
-                try:
-                    from bson import _cbson
-                    self._decode_element_func = _cbson._element_to_dict
-                except ImportError:
-                    self._decode_element_func = _element_to_dict
-
             obj_size = _UNPACK_INT(self.__raw[:4])[0]
             if len(self.__raw) < obj_size:
                 raise InvalidBSON("invalid object size")
@@ -995,8 +907,9 @@ class RawBSONDocument(collections.MutableMapping):
 
             # Skip the document size header.
             position = 4
+            from bson import _element_to_dict
             while position < obj_end:
-                name, value, position = self._decode_element_func(
+                name, value, position = _element_to_dict(
                     self.raw, position, obj_size, self.__codec_options)
                 yield name, value
 
