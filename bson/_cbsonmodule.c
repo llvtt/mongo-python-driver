@@ -2490,7 +2490,7 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     }
 
     /* No need to decode fields if using RawBSONDocument */
-    if (PyObject_IsSubclass(options.document_class, GETSTATE(self)->RawBSONDocument)) {
+    if (PyObject_IsSubclass(options.document_class, _get_object(GETSTATE(self)->RawBSONDocument))) {
 #if PY_MAJOR_VERSION >= 3
         raw_bson_document_bytes = PyBytes_FromStringAndSize(string, size);
 #else
@@ -2603,7 +2603,7 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
         }
 
         /* No need to decode fields if using RawBSONDocument. */
-        if (PyObject_IsSubclass(options.document_class, GETSTATE(self)->RawBSONDocument)) {
+        if (PyObject_IsSubclass(options.document_class, _get_object(GETSTATE(self)->RawBSONDocument))) {
 #if PY_MAJOR_VERSION >= 3
             raw_bson_document_bytes = PyBytes_FromStringAndSize(string, size);
 #else
