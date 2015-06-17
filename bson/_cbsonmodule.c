@@ -1373,10 +1373,6 @@ int write_dict(PyObject* self, buffer_t buffer,
     struct module_state *state = GETSTATE(self);
     PyObject* mapping_type = _get_object(state->Mapping,
                                          "collections", "Mapping");
-    PyObject* raw_bson_document_type;
-    PyObject* raw_bson_document_bytes_obj;
-    char* raw_bson_document_bytes;
-    Py_ssize_t raw_bson_document_bytes_len;
 
     if (mapping_type) {
         if (!PyObject_IsInstance(dict, mapping_type)) {
@@ -1421,31 +1417,6 @@ int write_dict(PyObject* self, buffer_t buffer,
         if (PyErr_Occurred()) {
             return 0;
         }
-    }
-
-    /* If this is a RawBSONDocument, just grab the bytes from the "raw" method. */
-    raw_bson_document_type = _get_object(state->RawBSONDocument,
-                                         "bson.pybson", "RawBSONDocument");
-    if (raw_bson_document_type && PyObject_IsInstance(dict, raw_bson_document_type)) {
-        raw_bson_document_bytes_obj = PyObject_GetAttrString(dict, "raw");
-        if (NULL == raw_bson_document_bytes_obj) {
-            Py_DECREF(raw_bson_document_type);
-            return 0;
-        }
-#if PY_MAJOR_VERSION >= 3
-        PyBytes_AsStringAndSize(raw_bson_document_bytes_obj,
-                                &raw_bson_document_bytes,
-                                &raw_bson_document_bytes_len);
-#else
-        PyString_AsStringAndSize(raw_bson_document_bytes_obj,
-                                 &raw_bson_document_bytes,
-                                 &raw_bson_document_bytes_len);
-#endif
-        buffer_write_bytes(buffer, raw_bson_document_bytes, (int) raw_bson_document_bytes_len);
-
-        Py_DECREF(raw_bson_document_type);
-        Py_DECREF(raw_bson_document_bytes_obj);
-        return 1;
     }
 
     length_location = buffer_save_space(buffer, 4);
@@ -1526,6 +1497,12 @@ static PyObject* _cbson_dict_to_bson(PyObject* self, PyObject* args) {
     codec_options_t options;
     buffer_t buffer;
 
+    PyObject* raw_bson_document_type;
+    PyObject* raw_bson_document_bytes_obj;
+    char* raw_bson_document_bytes;
+    Py_ssize_t raw_bson_document_bytes_len;
+
+
     if (!PyArg_ParseTuple(args, "ObO&|b", &dict, &check_keys,
                           convert_codec_options, &options, &top_level)) {
         return NULL;
@@ -1537,7 +1514,33 @@ static PyObject* _cbson_dict_to_bson(PyObject* self, PyObject* args) {
         return NULL;
     }
 
-    if (!write_dict(self, buffer, dict, check_keys, &options, top_level)) {
+    /* Do instance check here instead of in write_dict to avoid recursion inside
+     * recursion due to PyObject_IsInstance.
+     */
+    raw_bson_document_type = _get_object(GETSTATE(self)->RawBSONDocument,
+                                         "bson.pybson", "RawBSONDocument");
+    if (raw_bson_document_type && PyObject_IsInstance(dict, raw_bson_document_type)) {
+        raw_bson_document_bytes_obj = PyObject_GetAttrString(dict, "raw");
+        if (NULL == raw_bson_document_bytes_obj) {
+            Py_DECREF(raw_bson_document_type);
+            destroy_codec_options(&options);
+            buffer_free(buffer);
+            return NULL;
+        }
+#if PY_MAJOR_VERSION >= 3
+        PyBytes_AsStringAndSize(raw_bson_document_bytes_obj,
+                                &raw_bson_document_bytes,
+                                &raw_bson_document_bytes_len);
+#else
+        PyString_AsStringAndSize(raw_bson_document_bytes_obj,
+                                 &raw_bson_document_bytes,
+                                 &raw_bson_document_bytes_len);
+#endif
+        buffer_write_bytes(buffer, raw_bson_document_bytes, (int) raw_bson_document_bytes_len);
+
+        Py_DECREF(raw_bson_document_type);
+        Py_DECREF(raw_bson_document_bytes_obj);
+    } else if (!write_dict(self, buffer, dict, check_keys, &options, top_level)) {
         destroy_codec_options(&options);
         buffer_free(buffer);
         return NULL;
