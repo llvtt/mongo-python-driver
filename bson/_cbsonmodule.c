@@ -2416,6 +2416,7 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     PyObject* result;
     PyObject* raw_bson_document_bytes;
     PyObject* options_obj;
+    PyObject* raw_bson_document_type;
 
     if (! (PyArg_ParseTuple(args, "OO", &bson, &options_obj) &&
             convert_codec_options(options_obj, &options))) {
@@ -2490,7 +2491,9 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
     }
 
     /* No need to decode fields if using RawBSONDocument */
-    if (PyObject_IsSubclass(options.document_class, _get_object(GETSTATE(self)->RawBSONDocument))) {
+    raw_bson_document_type = _get_object(
+        GETSTATE(self)->RawBSONDocument, "bson.pybson", "RawBSONDocument");
+    if (raw_bson_document_type && PyObject_IsSubclass(options.document_class, raw_bson_document_type)) {
 #if PY_MAJOR_VERSION >= 3
         raw_bson_document_bytes = PyBytes_FromStringAndSize(string, size);
 #else
@@ -2498,9 +2501,11 @@ static PyObject* _cbson_bson_to_dict(PyObject* self, PyObject* args) {
 #endif
         if (NULL == raw_bson_document_bytes) {
             destroy_codec_options(&options);
+            Py_DECREF(raw_bson_document_type);
             return NULL;
         }
 
+        Py_DECREF(raw_bson_document_type);
         return PyObject_CallFunctionObjArgs(
             options.document_class, raw_bson_document_bytes, options_obj, NULL);
     }
@@ -2519,6 +2524,7 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
     PyObject* result;
     codec_options_t options;
     PyObject* options_obj;
+    PyObject* raw_bson_document_type;
     PyObject* raw_bson_document_bytes;
 
     if (!PyArg_ParseTuple(args, "O|O", &bson, &options_obj)) {
@@ -2603,7 +2609,9 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
         }
 
         /* No need to decode fields if using RawBSONDocument. */
-        if (PyObject_IsSubclass(options.document_class, _get_object(GETSTATE(self)->RawBSONDocument))) {
+        raw_bson_document_type = _get_object(
+            GETSTATE(self)->RawBSONDocument, "bson.pybson", "RawBSONDocument");
+        if (raw_bson_document_type && PyObject_IsSubclass(options.document_class, raw_bson_document_type)) {
 #if PY_MAJOR_VERSION >= 3
             raw_bson_document_bytes = PyBytes_FromStringAndSize(string, size);
 #else
@@ -2611,10 +2619,12 @@ static PyObject* _cbson_decode_all(PyObject* self, PyObject* args) {
 #endif
             if (NULL == raw_bson_document_bytes) {
                 destroy_codec_options(&options);
+                Py_DECREF(raw_bson_document_type);
                 return NULL;
             }
             dict = PyObject_CallFunctionObjArgs(
                 options.document_class, raw_bson_document_bytes, options_obj, NULL);
+            Py_DECREF(raw_bson_document_type);
         } else {
             dict = elements_to_dict(self, string + 4, (unsigned)size - 5, &options);
         }
