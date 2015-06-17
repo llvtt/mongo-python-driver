@@ -1496,12 +1496,10 @@ static PyObject* _cbson_dict_to_bson(PyObject* self, PyObject* args) {
     unsigned char top_level = 1;
     codec_options_t options;
     buffer_t buffer;
-
     PyObject* raw_bson_document_type;
     PyObject* raw_bson_document_bytes_obj;
     char* raw_bson_document_bytes;
     Py_ssize_t raw_bson_document_bytes_len;
-
 
     if (!PyArg_ParseTuple(args, "ObO&|b", &dict, &check_keys,
                           convert_codec_options, &options, &top_level)) {

@@ -879,6 +879,7 @@ class RawBSONDocument(collections.MutableMapping):
     def raw(self):
         """The raw BSON bytes composing this document."""
         if self.__dirty:
+            # Avoid circular import.
             from bson import BSON
             self.__raw = BSON.encode(
                 self.__inflated_doc,
@@ -907,6 +908,7 @@ class RawBSONDocument(collections.MutableMapping):
 
             # Skip the document size header.
             position = 4
+            # Avoid circular import.
             from bson import _element_to_dict
             while position < obj_end:
                 name, value, position = _element_to_dict(
