@@ -19,7 +19,7 @@
 
 from bson.objectid import ObjectId
 from bson.py3compat import u
-from bson import RawBSONDocument
+from bson.raw_bson_document import RawBSONDocument
 from bson.son import SON
 from pymongo.common import (validate_is_mapping,
                             validate_is_mutable_mapping,
