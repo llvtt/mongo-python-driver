@@ -884,6 +884,17 @@ class TestCollection(IntegrationTest):
         self.assertEqual(0, db.test.count({"x": 1}))
         self.assertEqual(db.test.find_one(id1)["y"], 1)
 
+        replacement = RawBSONDocument(bson.BSON.encode({"_id": id1, "z": 1}))
+        result = db.test.replace_one({"y": 1}, replacement, True)
+        self.assertTrue(isinstance(result, UpdateResult))
+        self.assertEqual(1, result.matched_count)
+        self.assertTrue(result.modified_count in (None, 1))
+        self.assertIsNone(result.upserted_id)
+        self.assertTrue(result.acknowledged)
+        self.assertEqual(1, db.test.count({"z": 1}))
+        self.assertEqual(0, db.test.count({"y": 1}))
+        self.assertEqual(db.test.find_one(id1)["z"], 1)
+
         result = db.test.replace_one({"x": 2}, {"y": 2}, True)
         self.assertTrue(isinstance(result, UpdateResult))
         self.assertEqual(0, result.matched_count)

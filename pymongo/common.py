@@ -381,7 +381,7 @@ def validate_ok_for_replace(replacement):
     """Validate a replacement document."""
     validate_is_mapping("replacement", replacement)
     # Replacement can be {}
-    if replacement:
+    if replacement and not isinstance(replacement, RawBSONDocument):
         first = next(iter(replacement))
         if first.startswith('$'):
             raise ValueError('replacement can not include $ operators')
