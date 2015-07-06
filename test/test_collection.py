@@ -24,6 +24,9 @@ from collections import defaultdict
 
 sys.path[0:0] = [""]
 
+import bson
+
+from bson.raw_bson_document import RawBSONDocument
 from bson.regex import Regex
 from bson.code import Code
 from bson.objectid import ObjectId
@@ -574,6 +577,12 @@ class TestCollection(IntegrationTest):
         # The insert failed duplicate key...
         wait_until(lambda: 2 == db.test.count(), 'forcing duplicate key error')
 
+        document = RawBSONDocument(
+            bson.BSON.encode({'_id': ObjectId(), 'foo': 'bar'}))
+        result = db.test.insert_one(document)
+        self.assertTrue(isinstance(result, InsertOneResult))
+        self.assertEqual(result.inserted_id, None)
+
     def test_insert_many(self):
         db = self.db
         db.test.drop()
@@ -602,13 +611,20 @@ class TestCollection(IntegrationTest):
             self.assertEqual(1, db.test.count({"_id": _id}))
         self.assertTrue(result.acknowledged)
 
+        docs = [RawBSONDocument(bson.BSON.encode({"_id": i + 5}))
+                for i in range(5)]
+        result = db.test.insert_many(docs)
+        self.assertTrue(isinstance(result, InsertManyResult))
+        self.assertTrue(isinstance(result.inserted_ids, list))
+        self.assertEqual([], result.inserted_ids)
+
         db = db.client.get_database(db.name,
                                     write_concern=WriteConcern(w=0))
         docs = [{} for _ in range(5)]
         result = db.test.insert_many(docs)
         self.assertTrue(isinstance(result, InsertManyResult))
         self.assertFalse(result.acknowledged)
-        self.assertEqual(15, db.test.count())
+        self.assertEqual(20, db.test.count())
 
     def test_delete_one(self):
         self.db.test.drop()

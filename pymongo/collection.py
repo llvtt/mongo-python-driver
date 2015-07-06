@@ -412,7 +412,9 @@ class Collection(common.BaseObject):
             def gen():
                 """Generator that only tracks existing _ids."""
                 for doc in docs:
-                    ids.append(doc.get('_id'))
+                    # Don't inflate RawBSONDocument by touching fields.
+                    if not isinstance(doc, RawBSONDocument):
+                        ids.append(doc.get('_id'))
                     yield doc
 
         concern = (write_concern or self.write_concern).document
@@ -435,8 +437,10 @@ class Collection(common.BaseObject):
             message._do_batched_insert(self.__full_name, gen(), check_keys,
                                        safe, concern, not ordered,
                                        self.codec_options, sock_info)
-        if return_one:
+        if return_one and ids:
             return ids[0]
+        elif return_one:
+            return None
         else:
             return ids
 
@@ -499,10 +503,10 @@ class Collection(common.BaseObject):
             """A generator that validates documents and handles _ids."""
             for document in documents:
                 common.validate_is_document_type("document", document)
-                if not (isinstance(document, RawBSONDocument)
-                        or "_id" in document):
-                    document["_id"] = ObjectId()
-                inserted_ids.append(document["_id"])
+                if not isinstance(document, RawBSONDocument):
+                    if "_id" not in document:
+                        document["_id"] = ObjectId()
+                    inserted_ids.append(document["_id"])
                 yield (_INSERT, document)
 
         blk = _Bulk(self, ordered)
