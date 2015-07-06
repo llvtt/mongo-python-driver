@@ -31,7 +31,8 @@ from bson.binary import (Binary, OLD_UUID_SUBTYPE,
                          JAVA_LEGACY, CSHARP_LEGACY,
                          UUIDLegacy)
 from bson.code import Code
-from bson.codec_options import CodecOptions, DEFAULT_CODEC_OPTIONS
+from bson.codec_options import (
+    CodecOptions, DEFAULT_CODEC_OPTIONS, _raw_document_class)
 from bson.dbref import DBRef
 from bson.errors import (InvalidBSON,
                          InvalidDocument,
@@ -84,20 +85,12 @@ BSONLON = b"\x12" # 64bit int
 BSONMIN = b"\xFF" # Min key
 BSONMAX = b"\x7F" # Max key
 
-_RAW_BSON_DOCUMENT_MARKER = 101
 
 _UNPACK_FLOAT = struct.Struct("<d").unpack
 _UNPACK_INT = struct.Struct("<i").unpack
 _UNPACK_LENGTH_SUBTYPE = struct.Struct("<iB").unpack
 _UNPACK_LONG = struct.Struct("<q").unpack
 _UNPACK_TIMESTAMP = struct.Struct("<II").unpack
-
-
-# TODO: better name and comment.
-def _raw_document_class(document_class):
-    """Determine if a document_class is a RawBSONDocument class."""
-    marker = getattr(document_class, '_type_marker', None)
-    return marker == _RAW_BSON_DOCUMENT_MARKER
 
 
 def _get_int(data, position, dummy0, dummy1):

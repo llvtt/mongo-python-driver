@@ -2307,108 +2307,10 @@ static PyObject* get_value(PyObject* self, const char* buffer,
     return NULL;
 }
 
-/*
- * Get the next 'name' and 'value' from a document in a string, whose position
- * is provided.
- *
- * Returns the position of the next element in the document, or -1 on error.
- */
-static int _element_to_dict(PyObject* self, const char* string,
-                            unsigned position, unsigned max,
-                            const codec_options_t* options,
-                            PyObject** name, PyObject** value) {
-    unsigned char type = (unsigned char)string[position++];
-    size_t name_length = strlen(string + position);
-    if (name_length > BSON_MAX_SIZE || position + name_length >= max) {
-        PyObject* InvalidBSON = _error("InvalidBSON");
-        if (InvalidBSON) {
-            PyErr_SetNone(InvalidBSON);
-            Py_DECREF(InvalidBSON);
-        }
-        return -1;
-    }
-    *name = PyUnicode_DecodeUTF8(string + position, name_length, "strict");
-    if (!*name) {
-        return -1;
-    }
-    position += (unsigned)name_length + 1;
-    *value = get_value(self, string, &position, type,
-                       max - position, options);
-    if (!*value) {
-        Py_DECREF(name);
-        return -1;
-    }
-    return position;
-}
-
-static PyObject* _cbson_element_to_dict(PyObject* self, PyObject* args) {
-    char* string;
-    PyObject* bson;
-    codec_options_t options;
-    unsigned position;
-    PyObject* position_obj;
-    unsigned max;
-    int new_position;
-    PyObject* name;
-    PyObject* value;
-    PyObject* result_tuple;
-
-    if (!PyArg_ParseTuple(args, "OII|O&", &bson, &position, &max,
-                          convert_codec_options, &options)) {
-        return NULL;
-    }
-    if (PyTuple_GET_SIZE(args) < 4) {
-        default_codec_options(&options);
-    }
-
-#if PY_MAJOR_VERSION >= 3
-    if (!PyBytes_Check(bson)) {
-        PyErr_SetString(PyExc_TypeError, "argument to decode_all must be a bytes object");
-#else
-    if (!PyString_Check(bson)) {
-        PyErr_SetString(PyExc_TypeError, "argument to decode_all must be a string");
-#endif
-        return NULL;
-    }
-#if PY_MAJOR_VERSION >= 3
-    string = PyBytes_AsString(bson);
-#else
-    string = PyString_AsString(bson);
-#endif
-
-    new_position = _element_to_dict(self, string, position, max, &options,
-                                    &name, &value);
-    if (new_position < 0) {
-        return NULL;
-    }
-
-#if PY_MAJOR_VERSION >= 3
-    position_obj = PyLong_FromLong(new_position);
-#else
-    position_obj = PyInt_FromLong(new_position);
-#endif
-    if (!position_obj) {
-        Py_DECREF(name);
-        Py_DECREF(value);
-        return NULL;
-    }
-
-    result_tuple = PyTuple_Pack(3, name, value, position_obj);
-    if (!result_tuple) {
-        Py_DECREF(name);
-        Py_DECREF(value);
-        Py_DECREF(position_obj);
-        return NULL;
-    }
-
-    return result_tuple;
-}
-
 static PyObject* _elements_to_dict(PyObject* self, const char* string,
                                    unsigned max,
                                    const codec_options_t* options) {
     unsigned position = 0;
-    int new_position;
     PyObject* dict = PyObject_CallObject(options->document_class, NULL);
     if (!dict) {
         return NULL;
@@ -2417,13 +2319,29 @@ static PyObject* _elements_to_dict(PyObject* self, const char* string,
         PyObject* name;
         PyObject* value;
 
-        new_position = _element_to_dict(self, string, position, max,
-                                        options, &name, &value);
-        if (new_position < 0) {
+        unsigned char type = (unsigned char)string[position++];
+        size_t name_length = strlen(string + position);
+        if (name_length > BSON_MAX_SIZE || position + name_length >= max) {
+            PyObject* InvalidBSON = _error("InvalidBSON");
+            if (InvalidBSON) {
+                PyErr_SetNone(InvalidBSON);
+                Py_DECREF(InvalidBSON);
+            }
             Py_DECREF(dict);
             return NULL;
-        } else {
-            position = new_position;
+        }
+        name = PyUnicode_DecodeUTF8(string + position, name_length, "strict");
+        if (!name) {
+            Py_DECREF(dict);
+            return NULL;
+        }
+        position += (unsigned)name_length + 1;
+        value = get_value(self, string, &position, type,
+                          max - position, options);
+        if (!value) {
+            Py_DECREF(name);
+            Py_DECREF(dict);
+            return NULL;
         }
 
         PyObject_SetItem(dict, name, value);
@@ -2687,8 +2605,6 @@ static PyMethodDef _CBSONMethods[] = {
      "convert a BSON string to a SON object."},
     {"decode_all", _cbson_decode_all, METH_VARARGS,
      "convert binary data to a sequence of documents."},
-    {"_element_to_dict", _cbson_element_to_dict, METH_VARARGS,
-     "Decode a single key, value pair."},
     {NULL, NULL, 0, NULL}
 };
 

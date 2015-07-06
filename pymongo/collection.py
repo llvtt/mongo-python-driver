@@ -385,7 +385,7 @@ class Collection(common.BaseObject):
                 check_keys=True, manipulate=False, write_concern=None):
         """Internal insert helper."""
         return_one = False
-        if isinstance(docs, collections.MutableMapping):
+        if isinstance(docs, (collections.MutableMapping, RawBSONDocument)):
             return_one = True
             docs = [docs]
 
@@ -461,7 +461,7 @@ class Collection(common.BaseObject):
 
         .. versionadded:: 3.0
         """
-        common.validate_is_mutable_mapping("document", document)
+        common.validate_is_document_type("document", document)
         if not (isinstance(document, RawBSONDocument) or "_id" in document):
             document["_id"] = ObjectId()
         with self._socket_for_writes() as sock_info:
@@ -498,7 +498,7 @@ class Collection(common.BaseObject):
         def gen():
             """A generator that validates documents and handles _ids."""
             for document in documents:
-                common.validate_is_mutable_mapping("document", document)
+                common.validate_is_document_type("document", document)
                 if not (isinstance(document, RawBSONDocument)
                         or "_id" in document):
                     document["_id"] = ObjectId()
@@ -1893,7 +1893,7 @@ class Collection(common.BaseObject):
         """
         warnings.warn("save is deprecated. Use insert_one or replace_one "
                       "instead", DeprecationWarning, stacklevel=2)
-        common.validate_is_mutable_mapping("to_save", to_save)
+        common.validate_is_document_type("to_save", to_save)
 
         write_concern = None
         if kwargs:
