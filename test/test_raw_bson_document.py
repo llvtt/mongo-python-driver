@@ -5,7 +5,7 @@ import pymongo
 
 from bson.binary import JAVA_LEGACY
 from bson.codec_options import CodecOptions
-from bson.raw_bson import RawBSONDocument
+from bson.raw_bson import RawBSONDocument, RawBSONList
 from test import client_context, unittest, pair
 
 
@@ -72,3 +72,21 @@ class TestRawBSONDocument(unittest.TestCase):
             codec_options=CodecOptions(uuid_representation=JAVA_LEGACY,
                                        document_class=RawBSONDocument))
         self.assertEqual(doc, coll.find_one())
+
+    def test_raw_bson_list(self):
+        # raw_bson = (
+        #     b'7\x00\x00\x00\x030\x00\x16\x00\x00\x00\x02hello\x00\x06\x00\x00'
+        #     b'\x00world\x00\x00\x031\x00\x16\x00\x00\x00\x02hello\x00\x06\x00'
+        #     b'\x00\x00again\x00\x00\x00\x00'
+        # )
+        raw_bson = (
+            b'\x1a\x00\x00\x00\x100\x00\x01\x00\x00\x00\x101\x00\x02\x00\x00'
+            b'\x00\x102\x00\x03\x00\x00\x00\x00\x00'
+        )
+        lst = iter(RawBSONList(raw_bson))
+        self.assertEqual(1, next(lst))
+        self.assertEqual(2, next(lst))
+        self.assertEqual(3, next(lst))
+        self.assertRaises(StopIteration, next, lst)
+        # self.assertEqual('world', next(lst)['hello'])
+        # self.assertEqual('again', next(lst)['hello'])

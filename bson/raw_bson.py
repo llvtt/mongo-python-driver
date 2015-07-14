@@ -40,6 +40,10 @@ class RawBSONList(collections.Iterable):
             document_class=RawBSONDocument,
             uuid_representation=codec_options.uuid_representation)
 
+    @property
+    def raw(self):
+        return self.__data
+
     def __iter__(self):
         list_size = _UNPACK_INT(self.__data[:4])[0]
         if len(self.__data) < list_size:
