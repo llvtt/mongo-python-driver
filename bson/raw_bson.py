@@ -17,14 +17,14 @@
 
 import collections
 
-from bson import BSON, _UNPACK_INT, _element_to_dict
+from bson import BSON, _UNPACK_INT, _element_to_dict, _ELEMENT_GETTER
 from bson.errors import InvalidBSON
 from bson.py3compat import iteritems
 from bson.codec_options import (
     CodecOptions, DEFAULT_CODEC_OPTIONS, _RAW_BSON_DOCUMENT_MARKER)
 
 
-class RawBSONList(collections.Iterable):
+class RawBSONIterator(collections.Iterator):
     """Representation for a MongoDB array that provides access to the raw
     BSON bytes that compose it.
 
@@ -39,10 +39,18 @@ class RawBSONList(collections.Iterable):
             tz_aware=codec_options.tz_aware,
             document_class=RawBSONDocument,
             uuid_representation=codec_options.uuid_representation)
+        self.__iterator = None
 
     @property
     def raw(self):
         return self.__data
+
+    def next(self):
+        if self.__iterator is None:
+            self.__iterator = iter(self)
+        return next(self.__iterator)
+
+    __next__ = next
 
     def __iter__(self):
         list_size = _UNPACK_INT(self.__data[:4])[0]
@@ -55,9 +63,11 @@ class RawBSONList(collections.Iterable):
         # Skip the document size header.
         position = 4
         while position < list_end:
-            # Decode next item.
-            name, value, position = _element_to_dict(
-                self.raw, position, list_size, self.__codec_options)
+            element_type = self.__data[position:position + 1]
+            # Skip the keys.
+            position = self.__data.index(b'\x00', position) + 1
+            value, position = _ELEMENT_GETTER[element_type](
+                self.__data, position, list_end, self.__codec_options)
             yield value
 
     def __getitem__(self):
@@ -74,7 +84,7 @@ class RawBSONDocument(collections.Mapping):
     """
 
     _type_marker = _RAW_BSON_DOCUMENT_MARKER
-    _list_class = RawBSONList
+    _list_class = RawBSONIterator
 
     def __init__(self, bson_bytes, codec_options=DEFAULT_CODEC_OPTIONS):
         """Create a new :class:`RawBSONDocument`.

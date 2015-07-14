@@ -131,6 +131,10 @@ def _get_object(data, position, obj_end, opts):
         raise InvalidBSON("bad eoo")
     if end >= obj_end:
         raise InvalidBSON("invalid object length")
+    if _raw_document_class(opts.document_class):
+        return (opts.document_class(data[position:end + 1], opts),
+                position + obj_size)
+
     obj = _elements_to_dict(data, position + 4, end, opts)
 
     position += obj_size
@@ -146,6 +150,11 @@ def _get_array(data, position, obj_end, opts):
     end = position + size - 1
     if data[end:end + 1] != b"\x00":
         raise InvalidBSON("bad eoo")
+
+    # RawBSONList.
+    if _raw_document_class(opts.document_class):
+        return opts.document_class._list_class(data[position:end + 1])
+
     position += 4
     end -= 1
     result = []
