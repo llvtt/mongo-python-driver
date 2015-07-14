@@ -5,7 +5,7 @@ import pymongo
 
 from bson.binary import JAVA_LEGACY
 from bson.codec_options import CodecOptions
-from bson.raw_bson_document import RawBSONDocument
+from bson.raw_bson import RawBSONDocument
 from test import client_context, unittest, pair
 
 

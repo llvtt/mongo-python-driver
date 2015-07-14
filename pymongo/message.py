@@ -24,7 +24,6 @@ import random
 import struct
 
 import bson
-from bson import pybson
 from bson.codec_options import DEFAULT_CODEC_OPTIONS
 from bson.py3compat import b, StringIO
 from bson.son import SON
@@ -157,7 +156,7 @@ def insert(collection_name, docs, check_keys,
     if continue_on_error:
         options += 1
     data = struct.pack("<i", options)
-    data += pybson._make_c_string(collection_name)
+    data += bson._make_c_string(collection_name)
     encoded = [bson.BSON.encode(doc, check_keys, opts) for doc in docs]
     if not encoded:
         raise InvalidOperation("cannot do an empty bulk insert")
@@ -186,7 +185,7 @@ def update(collection_name, upsert, multi,
         options += 2
 
     data = _ZERO_32
-    data += pybson._make_c_string(collection_name)
+    data += bson._make_c_string(collection_name)
     data += struct.pack("<i", options)
     data += bson.BSON.encode(spec, False, opts)
     encoded = bson.BSON.encode(doc, check_keys, opts)
@@ -208,7 +207,7 @@ def query(options, collection_name, num_to_skip,
     """Get a **query** message.
     """
     data = struct.pack("<I", options)
-    data += pybson._make_c_string(collection_name)
+    data += bson._make_c_string(collection_name)
     data += struct.pack("<i", num_to_skip)
     data += struct.pack("<i", num_to_return)
     encoded = bson.BSON.encode(query, False, opts)
@@ -228,7 +227,7 @@ def get_more(collection_name, num_to_return, cursor_id):
     """Get a **getMore** message.
     """
     data = _ZERO_32
-    data += pybson._make_c_string(collection_name)
+    data += bson._make_c_string(collection_name)
     data += struct.pack("<i", num_to_return)
     data += struct.pack("<q", cursor_id)
     return __pack_message(2005, data)
@@ -246,7 +245,7 @@ def delete(collection_name, spec, safe,
     http://docs.mongodb.org/meta-driver/latest/legacy/mongodb-wire-protocol/#op-delete
     """
     data = _ZERO_32
-    data += pybson._make_c_string(collection_name)
+    data += bson._make_c_string(collection_name)
     data += struct.pack("<I", flags)
     encoded = bson.BSON.encode(spec, False, opts)
     data += encoded
@@ -289,7 +288,7 @@ def _do_batched_insert(collection_name, docs, check_keys,
     last_error = None
     data = StringIO()
     data.write(struct.pack("<i", int(continue_on_error)))
-    data.write(pybson._make_c_string(collection_name))
+    data.write(bson._make_c_string(collection_name))
     message_length = begin_loc = data.tell()
     has_docs = False
     for doc in docs:

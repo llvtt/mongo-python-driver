@@ -26,7 +26,7 @@ sys.path[0:0] = [""]
 
 import bson
 
-from bson.raw_bson_document import RawBSONDocument
+from bson.raw_bson import RawBSONDocument
 from bson.regex import Regex
 from bson.code import Code
 from bson.objectid import ObjectId
