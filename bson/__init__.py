@@ -300,6 +300,8 @@ def _element_to_dict(data, position, obj_end, opts):
     value, position = _ELEMENT_GETTER[element_type](data,
                                                     position, obj_end, opts)
     return element_name, value, position
+if _USE_C:
+    _element_to_dict = _cbson._element_to_dict
 
 
 def _elements_to_dict(data, position, obj_end, opts):
