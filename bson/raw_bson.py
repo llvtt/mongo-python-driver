@@ -17,11 +17,47 @@
 
 import collections
 
-from bson import BSON, _UNPACK_INT
+from bson import BSON, _UNPACK_INT, _element_to_dict
 from bson.errors import InvalidBSON
 from bson.py3compat import iteritems
 from bson.codec_options import (
     CodecOptions, DEFAULT_CODEC_OPTIONS, _RAW_BSON_DOCUMENT_MARKER)
+
+
+class RawBSONList(collections.Iterable):
+    """Representation for a MongoDB array that provides access to the raw
+    BSON bytes that compose it.
+
+    Documents are decoded as RawBSONDocuments. All other items are decoded
+    non-lazily.
+    """
+
+    def __init__(self, data, codec_options=DEFAULT_CODEC_OPTIONS):
+        self.__data = data
+        # Automatically use RawBSONDocument as the document_class.
+        self.__codec_options = CodecOptions(
+            tz_aware=codec_options.tz_aware,
+            document_class=RawBSONDocument,
+            uuid_representation=codec_options.uuid_representation)
+
+    def __iter__(self):
+        list_size = _UNPACK_INT(self.__data[:4])[0]
+        if len(self.__data) < list_size:
+            raise InvalidBSON("invalid object size")
+        list_end = list_size - 1
+        if self.__data[list_end:list_size] != b"\x00":
+            raise InvalidBSON("bad eoo")
+
+        # Skip the document size header.
+        position = 4
+        while position < list_end:
+            # Decode next item.
+            name, value, position = _element_to_dict(
+                self.raw, position, list_size, self.__codec_options)
+            yield value
+
+    def __getitem__(self):
+        return NotImplemented
 
 
 class RawBSONDocument(collections.Mapping):
@@ -34,6 +70,7 @@ class RawBSONDocument(collections.Mapping):
     """
 
     _type_marker = _RAW_BSON_DOCUMENT_MARKER
+    _list_class = RawBSONList
 
     def __init__(self, bson_bytes, codec_options=DEFAULT_CODEC_OPTIONS):
         """Create a new :class:`RawBSONDocument`.
@@ -78,8 +115,6 @@ class RawBSONDocument(collections.Mapping):
 
             # Skip the document size header.
             position = 4
-            # Avoid circular import.
-            from bson import _element_to_dict
             while position < obj_end:
                 name, value, position = _element_to_dict(
                     self.raw, position, obj_size, self.__codec_options)
