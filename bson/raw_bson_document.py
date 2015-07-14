@@ -17,7 +17,9 @@
 
 import collections
 
-from bson import BSON
+from bson import BSON, _UNPACK_INT
+from bson.errors import InvalidBSON
+from bson.py3compat import iteritems
 from bson.codec_options import (
     CodecOptions, DEFAULT_CODEC_OPTIONS, _RAW_BSON_DOCUMENT_MARKER)
 
@@ -61,7 +63,38 @@ class RawBSONDocument(collections.Mapping):
             self.__inflated_doc = self.__raw.decode(self.__codec_options)
         return self.__inflated_doc
 
+    def _items(self):
+        """Lazily decode and iterate elements in this document."""
+        if self.__inflated_doc is not None:
+            for name, value in iteritems(self.__inflated_doc):
+                yield name, value
+        else:
+            obj_size = _UNPACK_INT(self.__raw[:4])[0]
+            if len(self.__raw) < obj_size:
+                raise InvalidBSON("invalid object size")
+            obj_end = obj_size - 1
+            if self.__raw[obj_end:obj_size] != b"\x00":
+                raise InvalidBSON("bad eoo")
+
+            # Skip the document size header.
+            position = 4
+            # Avoid circular import.
+            from bson import _element_to_dict
+            while position < obj_end:
+                name, value, position = _element_to_dict(
+                    self.raw, position, obj_size, self.__codec_options)
+                yield name, value
+
+    def __hasitem__(self, item):
+        if self.__inflated_doc is not None:
+            return item in self.__inflated
+        for name, value in self._items():
+            if name == item:
+                return True
+        return False
+
     def __getitem__(self, item):
+        # TODO: decode certain items to RawBSONDocument and RawBSONList.
         return self.__inflated[item]
 
     def __iter__(self):
