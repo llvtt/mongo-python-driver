@@ -26,7 +26,7 @@ class TestRawBSONDocument(unittest.TestCase):
 
     def test_decode(self):
         self.assertEqual('Sherlock', self.document['name'])
-        self.assertIsInstance(self.document['address'], dict)
+        self.assertIsInstance(self.document['address'], RawBSONDocument)
         self.assertEqual('Baker Street', self.document['address']['street'])
 
     def test_raw(self):

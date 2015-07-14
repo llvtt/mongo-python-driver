@@ -17,7 +17,7 @@
 
 import collections
 
-from bson import BSON, _UNPACK_INT, _element_to_dict, _ELEMENT_GETTER
+from bson import _UNPACK_INT, _element_to_dict, _ELEMENT_GETTER
 from bson.errors import InvalidBSON
 from bson.py3compat import iteritems
 from bson.codec_options import (
@@ -96,23 +96,17 @@ class RawBSONDocument(collections.Mapping):
             respect the `document_class` attribute of `codec_options` when
             decoding its bytes and always uses a `dict` for this purpose.
         """
-        self.__raw = BSON(bson_bytes)
+        self.__raw = bson_bytes
         self.__inflated_doc = None
-        # Don't let codec_options use RawBSONDocument as the document_class.
         self.__codec_options = CodecOptions(
             tz_aware=codec_options.tz_aware,
+            document_class=RawBSONDocument,
             uuid_representation=codec_options.uuid_representation)
 
     @property
     def raw(self):
         """The raw BSON bytes composing this document."""
         return self.__raw
-
-    @property
-    def __inflated(self):
-        if self.__inflated_doc is None:
-            self.__inflated_doc = self.__raw.decode(self.__codec_options)
-        return self.__inflated_doc
 
     def _items(self):
         """Lazily decode and iterate elements in this document."""
@@ -133,6 +127,12 @@ class RawBSONDocument(collections.Mapping):
                 name, value, position = _element_to_dict(
                     self.raw, position, obj_size, self.__codec_options)
                 yield name, value
+
+    @property
+    def __inflated(self):
+        if self.__inflated_doc is None:
+            self.__inflated_doc = dict(self._items())
+        return self.__inflated_doc
 
     def __hasitem__(self, item):
         if self.__inflated_doc is not None:
