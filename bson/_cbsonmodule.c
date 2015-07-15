@@ -1690,6 +1690,8 @@ static PyObject* get_value(PyObject* self, const char* buffer,
         {
             PyObject* collection;
             unsigned size;
+            int is_raw_bson_document;
+            PyObject* raw_bson_document_bytes;
             if (max < 4) {
                 goto invalid;
             }
@@ -1701,6 +1703,26 @@ static PyObject* get_value(PyObject* self, const char* buffer,
             if (buffer[*position + size - 1]) {
                 goto invalid;
             }
+
+            is_raw_bson_document = _raw_bson_document(options->document_class);
+            if (-1 == is_raw_bson_document) {
+                goto invalid;
+            } else if (is_raw_bson_document) {
+#if PY_MAJOR_VERSION >= 3
+                raw_bson_document_bytes = PyBytes_FromStringAndSize(buffer + *position, size);
+#else
+                raw_bson_document_bytes = PyString_FromStringAndSize(buffer + *position, size);
+#endif
+                /* TODO: get codec options PyObject in here somehow. */
+                value = PyObject_CallFunctionObjArgs(
+                    options->document_class, raw_bson_document_bytes, NULL);
+                if (!value) {
+                    goto invalid;
+                }
+                *position += size;
+                break;
+            }
+
             value = elements_to_dict(self, buffer + *position + 4,
                                      size - 5, options);
             if (!value) {
@@ -1764,6 +1786,9 @@ static PyObject* get_value(PyObject* self, const char* buffer,
     case 4:
         {
             unsigned size, end;
+            int is_raw_bson_document;
+            PyObject* raw_bson_iterator_bytes_obj;
+            PyObject* raw_bson_iterator_func;
 
             if (max < 4) {
                 goto invalid;
@@ -1777,6 +1802,34 @@ static PyObject* get_value(PyObject* self, const char* buffer,
             if (buffer[end]) {
                 goto invalid;
             }
+
+            is_raw_bson_document = _raw_bson_document(options->document_class);
+            if (-1 == is_raw_bson_document) {
+                goto invalid;
+            } else if (is_raw_bson_document) {
+#if PY_MAJOR_VERSION >= 3
+                raw_bson_iterator_bytes_obj = PyBytes_FromStringAndSize(
+                    buffer + *position, size);
+#else
+                raw_bson_iterator_bytes_obj = PyString_FromStringAndSize(
+                    buffer + *position, size);
+#endif
+                raw_bson_iterator_func = PyObject_GetAttrString(
+                    options->document_class, "_list_class");
+                if (!raw_bson_iterator_func) {
+                    goto invalid;
+                }
+                /* TODO: get PyObject codec options in here somehow */
+                value = PyObject_CallFunctionObjArgs(raw_bson_iterator_func, raw_bson_iterator_bytes_obj, NULL);
+                if (!value) {
+                    Py_DECREF(raw_bson_iterator_func);
+                    goto invalid;
+                }
+                *position += 4 + size;
+                Py_DECREF(raw_bson_iterator_func);
+                break;
+            }
+
             *position += 4;
 
             value = PyList_New(0);
