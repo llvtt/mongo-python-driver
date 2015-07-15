@@ -152,7 +152,7 @@ def _get_array(data, position, obj_end, opts):
     if data[end:end + 1] != b"\x00":
         raise InvalidBSON("bad eoo")
 
-    # RawBSONList.
+    # RawBSONIterator.
     if _raw_document_class(opts.document_class):
         return opts.document_class._list_class(data[position:end + 1]), end + 1
 

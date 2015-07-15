@@ -885,6 +885,56 @@ static int _write_element_to_buffer(PyObject* self, buffer_t buffer,
                 *(buffer_get_buffer(buffer) + type_byte) = 0x03;
                 return 1;
             }
+        case 101:
+            {
+                /* RawBSONDocument */
+                PyObject* raw_bson_document_bytes_obj = PyObject_GetAttrString(value, "raw");
+                char* raw_bson_document_bytes;
+                Py_ssize_t raw_bson_document_bytes_len;
+
+#if PY_MAJOR_VERSION >= 3
+                PyBytes_AsStringAndSize(raw_bson_document_bytes_obj,
+                                        &raw_bson_document_bytes,
+                                        &raw_bson_document_bytes_len);
+#else
+                PyString_AsStringAndSize(raw_bson_document_bytes_obj,
+                                         &raw_bson_document_bytes,
+                                         &raw_bson_document_bytes_len);
+#endif
+                if(!buffer_write_bytes(buffer, raw_bson_document_bytes,
+                                       (int) raw_bson_document_bytes_len)) {
+                    Py_DECREF(raw_bson_document_bytes_obj);
+                    return 0;
+                }
+                *(buffer_get_buffer(buffer) + type_byte) = 0x03;
+                Py_DECREF(raw_bson_document_bytes_obj);
+                return 1;
+            }
+        case 102:
+            {
+                /* RawBSONIterator */
+                PyObject* raw_bson_iterator_bytes_obj = PyObject_GetAttrString(value, "raw");
+                char* raw_bson_iterator_bytes;
+                Py_ssize_t raw_bson_iterator_bytes_len;
+
+#if PY_MAJOR_VERSION >= 3
+                PyBytes_AsStringAndSize(raw_bson_iterator_bytes_obj,
+                                        &raw_bson_iterator_bytes,
+                                        &raw_bson_iterator_bytes_len);
+#else
+                PyString_AsStringAndSize(raw_bson_iterator_bytes_obj,
+                                         &raw_bson_iterator_bytes,
+                                         &raw_bson_iterator_bytes_len);
+#endif
+                if(!buffer_write_bytes(buffer, raw_bson_iterator_bytes,
+                                       (int) raw_bson_iterator_bytes_len)) {
+                    Py_DECREF(raw_bson_iterator_bytes_obj);
+                    return 0;
+                }
+                *(buffer_get_buffer(buffer) + type_byte) = 0x04;
+                Py_DECREF(raw_bson_iterator_bytes_obj);
+                return 1;
+            }
         case 255:
             {
                 /* MinKey */
