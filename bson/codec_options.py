@@ -21,12 +21,19 @@ from bson.binary import (ALL_UUID_REPRESENTATIONS,
                          UUID_REPRESENTATION_NAMES)
 
 _RAW_BSON_DOCUMENT_MARKER = 101
+_RAW_BSON_ITERATOR_MARKER = 102
 
 
 def _raw_document_class(document_class):
     """Determine if a document_class is a RawBSONDocument class."""
     marker = getattr(document_class, '_type_marker', None)
     return marker == _RAW_BSON_DOCUMENT_MARKER
+
+
+def _raw_iterator_class(iter_class):
+    """Determine if an iterator's class is a RawBSONIterator class."""
+    marker = getattr(iter_class, '_type_marker', None)
+    return marker == _RAW_BSON_ITERATOR_MARKER
 
 
 _options_base = namedtuple(

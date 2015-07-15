@@ -13,7 +13,7 @@ class TestRawBSONDocument(unittest.TestCase):
 
     # {u'_id': ObjectId('556df68b6e32ab21a95e0785'),
     #  u'name': u'Sherlock',
-    #  u'address': {u'street': u'Baker Street'}}
+    #  u'addresses': [{u'street': u'Baker Street'}]}
     bson_string = (
         b'Z\x00\x00\x00\x07_id\x00Um\xf6\x8bn2\xab!\xa9^\x07\x85\x02name\x00\t'
         b'\x00\x00\x00Sherlock\x00\x04addresses\x00&\x00\x00\x00\x030\x00\x1e'
@@ -41,6 +41,7 @@ class TestRawBSONDocument(unittest.TestCase):
         client.pymongo_test.test_raw.insert_one(self.document)
         result = client.pymongo_test.test_raw.find_one(self.document['_id'])
         self.assertIsInstance(result, RawBSONDocument)
+        self.assertIsInstance(result['addresses'], RawBSONIterator)
         self.assertEqual(self.document, result)
 
     def test_with_codec_options(self):
@@ -88,3 +89,24 @@ class TestRawBSONDocument(unittest.TestCase):
         self.assertEqual('world', first['hello'])
         self.assertEqual('again', next(lst)['hello'])
         self.assertRaises(StopIteration, next, lst)
+
+    def test_raw_bson_iterator_equality(self):
+        raw_iterator = self.document['addresses']
+        self.assertEqual([{'street': 'Baker Street'}], raw_iterator)
+
+    @client_context.require_connection
+    def test_raw_bson_iterator_round_trip(self):
+        raw_iterator = self.document['addresses']
+        doc = {'addresses': raw_iterator}
+        db = client_context.client.pymongo_test
+        db.test_raw.insert_one(doc)
+        result = db.test_raw.find_one()
+        self.assertEqual([{'street': 'Baker Street'}], result['addresses'])
+
+    @client_context.require_connection
+    def test_raw_bson_document_embedded(self):
+        doc = {'embedded': self.document}
+        db = client_context.client.pymongo_test
+        db.test_raw.insert_one(doc)
+        result = db.test_raw.find_one()
+        self.assertEqual(self.document, result['embedded'])

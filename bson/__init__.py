@@ -32,7 +32,8 @@ from bson.binary import (Binary, OLD_UUID_SUBTYPE,
                          UUIDLegacy)
 from bson.code import Code
 from bson.codec_options import (
-    CodecOptions, DEFAULT_CODEC_OPTIONS, _raw_document_class)
+    CodecOptions, DEFAULT_CODEC_OPTIONS,
+    _raw_document_class, _raw_iterator_class)
 from bson.dbref import DBRef
 from bson.errors import (InvalidBSON,
                          InvalidDocument,
@@ -463,6 +464,11 @@ def _encode_dbref(name, value, check_keys, opts):
     return bytes(buf)
 
 
+def _encode_raw_bson_iterator(name, value, dummy0, dummy1):
+    """Encode bson.raw_bson.RawBSONIterator."""
+    return b'\x04' + name + value.raw
+
+
 def _encode_list(name, value, check_keys, opts):
     """Encode a list/tuple."""
     lname = gen_list_name()
@@ -645,6 +651,7 @@ _MARKERS = {
     17: _encode_timestamp,
     18: _encode_long,
     100: _encode_dbref,
+    102: _encode_raw_bson_iterator,
     127: _encode_maxkey,
     255: _encode_minkey,
 }

@@ -21,7 +21,8 @@ from bson import _UNPACK_INT, _element_to_dict, _ELEMENT_GETTER
 from bson.errors import InvalidBSON
 from bson.py3compat import iteritems
 from bson.codec_options import (
-    CodecOptions, DEFAULT_CODEC_OPTIONS, _RAW_BSON_DOCUMENT_MARKER)
+    CodecOptions, DEFAULT_CODEC_OPTIONS,
+    _RAW_BSON_DOCUMENT_MARKER, _RAW_BSON_ITERATOR_MARKER)
 
 
 class RawBSONIterator(collections.Iterator):
@@ -31,6 +32,8 @@ class RawBSONIterator(collections.Iterator):
     Documents are decoded as RawBSONDocuments. All other items are decoded
     non-lazily.
     """
+
+    _type_marker = _RAW_BSON_ITERATOR_MARKER
 
     def __init__(self, data, codec_options=DEFAULT_CODEC_OPTIONS):
         self.__data = data
@@ -146,7 +149,6 @@ class RawBSONDocument(collections.Mapping):
         return False
 
     def __getitem__(self, item):
-        # TODO: decode certain items to RawBSONDocument and RawBSONList.
         return self.__inflated[item]
 
     def __iter__(self):
