@@ -263,6 +263,15 @@ class Database(common.BaseObject):
         return Collection(
             self, name, False, codec_options, read_preference, write_concern)
 
+    def _collection(self, name, **kargs):
+        """Get a Collection instance with the default settings."""
+        wc = (self.write_concern
+              if self.write_concern.acknowledged else WriteConcern())
+        return self.get_collection(
+            name, codec_options=CodecOptions(),
+            read_preference=ReadPreference.PRIMARY,
+            write_concern=wc)
+
     def create_collection(self, name, codec_options=None,
                           read_preference=None, write_concern=None, **kwargs):
         """Create a new :class:`~pymongo.collection.Collection` in this
@@ -460,11 +469,11 @@ class Database(common.BaseObject):
             cmd = SON([("listCollections", 1), ("cursor", {})])
             if criteria:
                 cmd["filter"] = criteria
-            coll = self["$cmd"]
+            coll = self._collection("$cmd")
             cursor = self._command(sock_info, cmd, slave_okay)["cursor"]
             return CommandCursor(coll, cursor, sock_info.address)
         else:
-            coll = self["system.namespaces"]
+            coll = self._collection("system.namespaces")
             res = _first_batch(sock_info, coll.full_name,
                                criteria, 0, slave_okay,
                                CodecOptions(), ReadPreference.PRIMARY)
@@ -795,7 +804,9 @@ class Database(common.BaseObject):
     def _legacy_add_user(self, name, password, read_only, **kwargs):
         """Uses v1 system to add users, i.e. saving to system.users.
         """
-        user = self.system.users.find_one({"user": name}) or {"user": name}
+        # Use a Collectionn with the default codec_options.
+        system_users = self._collection('system.users')
+        user = system_users.find_one({"user": name}) or {"user": name}
         if password is not None:
             user["pwd"] = auth._password_digest(name, password)
         if read_only is not None:
@@ -805,11 +816,8 @@ class Database(common.BaseObject):
         # We don't care what the _id is, only that it has one
         # for the replace_one call below.
         user.setdefault("_id", ObjectId())
-        coll = self.system.users
-        if not self.write_concern.acknowledged:
-            coll = coll.with_options(write_concern=WriteConcern())
         try:
-            coll.replace_one({"_id": user["_id"]}, user, True)
+            system_users.replace_one({"_id": user["_id"]}, user, True)
         except OperationFailure as exc:
             # First admin user add fails gle in MongoDB >= 2.1.2
             # See SERVER-4225 for more information.
@@ -901,9 +909,7 @@ class Database(common.BaseObject):
         except OperationFailure as exc:
             # See comment in add_user try / except above.
             if exc.code in common.COMMAND_NOT_FOUND_CODES:
-                coll = self.system.users
-                if not self.write_concern.acknowledged:
-                    coll = coll.with_options(write_concern=WriteConcern())
+                coll = self._collection('system.users')
                 coll.delete_one({"user": name})
                 return
             raise

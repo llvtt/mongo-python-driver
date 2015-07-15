@@ -990,7 +990,8 @@ class Collection(common.BaseObject):
         """Internal count helper."""
         with self._socket_for_reads() as (sock_info, slave_ok):
             res = self._command(sock_info, cmd, slave_ok,
-                                codec_options=DEFAULT_CODEC_OPTIONS,
+                                codec_options=self.codec_options._replace(
+                                    document_class=dict),
                                 allowable_errors=["ns missing"])
         if res.get("errmsg", "") == "ns missing":
             return 0

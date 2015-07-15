@@ -38,6 +38,7 @@ import warnings
 import weakref
 from collections import defaultdict
 
+from bson.codec_options import CodecOptions
 from bson.py3compat import (integer_types,
                             string_type)
 from pymongo import (common,
@@ -62,6 +63,7 @@ from pymongo.server_type import SERVER_TYPE
 from pymongo.topology import Topology
 from pymongo.topology_description import TOPOLOGY_TYPE
 from pymongo.settings import TopologySettings
+from pymongo.write_concern import WriteConcern
 
 
 class MongoClient(common.BaseObject):
@@ -900,9 +902,7 @@ class MongoClient(common.BaseObject):
     def database_names(self):
         """Get a list of the names of all databases on the connected server."""
         return [db["name"] for db in
-                self.admin.command(
-                    "listDatabases",
-                    read_preference=ReadPreference.PRIMARY)["databases"]]
+                self._database('admin').command("listDatabases")["databases"]]
 
     def drop_database(self, name_or_database):
         """Drop a database.
@@ -982,13 +982,20 @@ class MongoClient(common.BaseObject):
         return database.Database(
             self, name, codec_options, read_preference, write_concern)
 
+    def _database(self, name):
+        """Get a Database instance with the default settings."""
+        return self.get_database(
+            name, codec_options=CodecOptions(),
+            read_preference=ReadPreference.PRIMARY,
+            write_concern=WriteConcern())
+
     @property
     def is_locked(self):
         """Is this server locked? While locked, all write operations
         are blocked, although read operations may still be allowed.
         Use :meth:`unlock` to unlock.
         """
-        ops = self.admin.current_op()
+        ops = self._database('admin').current_op()
         return bool(ops.get('fsyncLock', 0))
 
     def fsync(self, **kwargs):
