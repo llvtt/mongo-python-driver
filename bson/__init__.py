@@ -153,7 +153,7 @@ def _get_array(data, position, obj_end, opts):
 
     # RawBSONList.
     if _raw_document_class(opts.document_class):
-        return opts.document_class._list_class(data[position:end + 1])
+        return opts.document_class._list_class(data[position:end + 1]), end + 1
 
     position += 4
     end -= 1

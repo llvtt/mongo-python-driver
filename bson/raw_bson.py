@@ -70,6 +70,9 @@ class RawBSONIterator(collections.Iterator):
                 self.__data, position, list_end, self.__codec_options)
             yield value
 
+    def __cmp__(self, other):
+        return cmp(list(self), list(other))
+
     def __getitem__(self):
         return NotImplemented
 

@@ -14,10 +14,11 @@ class TestRawBSONDocument(unittest.TestCase):
     # {u'_id': ObjectId('556df68b6e32ab21a95e0785'),
     #  u'name': u'Sherlock',
     #  u'address': {u'street': u'Baker Street'}}
-    bson_string = (b'P\x00\x00\x00\x07_id\x00Um\xf6\x8bn2\xab!\xa9^\x07\x85'
-                   b'\x02name\x00\t\x00\x00\x00Sherlock\x00\x03address\x00'
-                   b'\x1e\x00\x00\x00\x02street\x00\r\x00\x00\x00'
-                   b'Baker Street\x00\x00\x00')
+    bson_string = (
+        b'Z\x00\x00\x00\x07_id\x00Um\xf6\x8bn2\xab!\xa9^\x07\x85\x02name\x00\t'
+        b'\x00\x00\x00Sherlock\x00\x04addresses\x00&\x00\x00\x00\x030\x00\x1e'
+        b'\x00\x00\x00\x02street\x00\r\x00\x00\x00Baker Street\x00\x00\x00\x00'
+    )
     document = RawBSONDocument(bson_string)
 
     def tearDown(self):
@@ -26,8 +27,10 @@ class TestRawBSONDocument(unittest.TestCase):
 
     def test_decode(self):
         self.assertEqual('Sherlock', self.document['name'])
-        self.assertIsInstance(self.document['address'], RawBSONDocument)
-        self.assertEqual('Baker Street', self.document['address']['street'])
+        self.assertIsInstance(self.document['addresses'], RawBSONIterator)
+        first_address = next(self.document['addresses'])
+        self.assertIsInstance(first_address, RawBSONDocument)
+        self.assertEqual('Baker Street', first_address['street'])
 
     def test_raw(self):
         self.assertEqual(self.bson_string, self.document.raw)
