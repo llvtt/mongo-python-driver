@@ -110,3 +110,26 @@ class TestRawBSONDocument(unittest.TestCase):
         db.test_raw.insert_one(doc)
         result = db.test_raw.find_one()
         self.assertEqual(self.document, result['embedded'])
+
+        # Make sure that CodecOptions are preserved.
+        # {'embedded': [
+        #   {u'date': datetime.datetime(2015, 6, 3, 18, 40, 50, 826000),
+        #    u'_id': UUID('026fab8f-975f-4965-9fbf-85ad874c60ff')}
+        # ]}
+        # encoded with JAVA_LEGACY uuid representation.
+        bson_string = (
+            b'D\x00\x00\x00\x04embedded\x005\x00\x00\x00\x030\x00-\x00\x00\x00'
+            b'\tdate\x00\x8a\xd6\xb9\xbaM\x01\x00\x00\x05_id\x00\x10\x00\x00'
+            b'\x00\x03eI_\x97\x8f\xabo\x02\xff`L\x87\xad\x85\xbf\x9f\x00\x00'
+            b'\x00'
+        )
+        rbd = RawBSONDocument(
+            bson_string,
+            codec_options=CodecOptions(uuid_representation=JAVA_LEGACY))
+
+        db.test_raw.drop()
+        db.test_raw.insert_one(rbd)
+        result = db.get_collection('test_raw', codec_options=CodecOptions(
+            uuid_representation=JAVA_LEGACY)).find_one()
+        self.assertEqual(next(rbd['embedded'])['_id'],
+                         result['embedded'][0]['_id'])
