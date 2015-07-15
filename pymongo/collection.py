@@ -24,7 +24,7 @@ from bson.py3compat import (_unicode,
                             string_type,
                             u)
 from bson.raw_bson import RawBSONDocument
-from bson.codec_options import CodecOptions
+from bson.codec_options import CodecOptions, DEFAULT_CODEC_OPTIONS
 from bson.son import SON
 from pymongo import (common,
                      helpers,
@@ -990,6 +990,7 @@ class Collection(common.BaseObject):
         """Internal count helper."""
         with self._socket_for_reads() as (sock_info, slave_ok):
             res = self._command(sock_info, cmd, slave_ok,
+                                codec_options=DEFAULT_CODEC_OPTIONS,
                                 allowable_errors=["ns missing"])
         if res.get("errmsg", "") == "ns missing":
             return 0

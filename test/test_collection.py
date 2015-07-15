@@ -26,9 +26,10 @@ sys.path[0:0] = [""]
 
 import bson
 
-from bson.raw_bson import RawBSONDocument
+from bson.raw_bson import RawBSONDocument, RawBSONIterator
 from bson.regex import Regex
 from bson.code import Code
+from bson.codec_options import CodecOptions
 from bson.objectid import ObjectId
 from bson.py3compat import u, itervalues
 from bson.son import SON
@@ -1088,6 +1089,24 @@ class TestCollection(IntegrationTest):
 
         self.assertTrue(isinstance(result, CommandCursor))
         self.assertEqual([{'foo': [1, 2]}], list(result))
+
+    def test_aggregate_raw_bson(self):
+        db = self.db
+        db.drop_collection("test")
+        db.test.insert_one({'foo': [1, 2]})
+
+        self.assertRaises(TypeError, db.test.aggregate, "wow")
+
+        pipeline = {"$project": {"_id": False, "foo": True}}
+        result = db.get_collection(
+            'test',
+            codec_options=CodecOptions(document_class=RawBSONDocument)
+        ).aggregate([pipeline], useCursor=False)
+        self.assertTrue(isinstance(result, CommandCursor))
+        first_result = next(result)
+        self.assertIsInstance(first_result, RawBSONDocument)
+        self.assertIsInstance(first_result['foo'], RawBSONIterator)
+        self.assertEqual([1, 2], list(first_result['foo']))
 
     @client_context.require_version_min(2, 5, 1)
     def test_aggregation_cursor_validation(self):
