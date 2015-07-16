@@ -51,6 +51,7 @@ struct module_state {
     PyTypeObject* REType;
     PyObject* BSONInt64;
     PyObject* Mapping;
+    PyObject* CodecOptions;
 };
 
 /* The Py_TYPE macro was introduced in CPython 2.6 */
@@ -144,7 +145,8 @@ void destroy_codec_options(codec_options_t* options) {
 }
 
 static PyObject* elements_to_dict(PyObject* self, const char* string,
-                                  unsigned max, const codec_options_t* options);
+                                  unsigned max,
+                                  const codec_options_t* options);
 
 static int _write_element_to_buffer(PyObject* self, buffer_t buffer,
                                     int type_byte, PyObject* value,
@@ -369,7 +371,8 @@ static int _load_python_objects(PyObject* module) {
         _load_object(&state->Regex, "bson.regex", "Regex") ||
         _load_object(&state->BSONInt64, "bson.int64", "Int64") ||
         _load_object(&state->UUID, "uuid", "UUID") ||
-        _load_object(&state->Mapping, "collections", "Mapping")) {
+        _load_object(&state->Mapping, "collections", "Mapping") ||
+        _load_object(&state->CodecOptions, "bson.codec_options", "CodecOptions")) {
         return 1;
     }
     /* Reload our REType hack too. */
@@ -400,6 +403,41 @@ static int _load_python_objects(PyObject* module) {
     Py_DECREF(empty_string);
     Py_DECREF(compiled);
     return 0;
+}
+
+/* Reconstitute a CodecOptions from a codec_options_t.
+ *
+ * Return the resulting PyObject, or NULL on failure.
+ */
+static PyObject* inflate_codec_options(const struct module_state* state,
+                                       const codec_options_t* options) {
+    PyObject* tz_aware_obj;
+    PyObject* uuid_representation_obj;
+    PyObject* codec_options_func = _get_object(
+        state->CodecOptions, "bson.codec_options", "CodecOptions");
+    if (!codec_options_func) {
+        return NULL;
+    }
+    if (! (tz_aware_obj = PyBool_FromLong(options->tz_aware))) {
+        Py_DECREF(codec_options_func);
+        return NULL;
+    }
+#if PY_MAJOR_VERSION >= 3
+    uuid_representation_obj = PyLong_FromLong(options->uuid_rep);
+#else
+    uuid_representation_obj = PyInt_FromLong(options->uuid_rep);
+#endif
+    if (!uuid_representation_obj) {
+        Py_DECREF(codec_options_func);
+        Py_DECREF(tz_aware_obj);
+        return NULL;
+    }
+    /* document_class, tz_aware, uuid_representation, and other stuff after merge. */
+    return PyObject_CallFunctionObjArgs(codec_options_func,
+                                        options->document_class,
+                                        tz_aware_obj,
+                                        uuid_representation_obj,
+                                        NULL);
 }
 
 static int write_element_to_buffer(PyObject* self, buffer_t buffer,
@@ -1715,7 +1753,8 @@ static PyObject* get_value(PyObject* self, const char* buffer,
 #endif
                 /* TODO: get codec options PyObject in here somehow. */
                 value = PyObject_CallFunctionObjArgs(
-                    options->document_class, raw_bson_document_bytes, NULL);
+                    options->document_class, raw_bson_document_bytes,
+                    inflate_codec_options(state, options), NULL);
                 if (!value) {
                     goto invalid;
                 }
@@ -1820,7 +1859,9 @@ static PyObject* get_value(PyObject* self, const char* buffer,
                     goto invalid;
                 }
                 /* TODO: get PyObject codec options in here somehow */
-                value = PyObject_CallFunctionObjArgs(raw_bson_iterator_func, raw_bson_iterator_bytes_obj, NULL);
+                value = PyObject_CallFunctionObjArgs(
+                    raw_bson_iterator_func, raw_bson_iterator_bytes_obj,
+                    inflate_codec_options(state, options), NULL);
                 if (!value) {
                     Py_DECREF(raw_bson_iterator_func);
                     goto invalid;
