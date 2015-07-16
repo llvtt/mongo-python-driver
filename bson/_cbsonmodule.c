@@ -1730,6 +1730,8 @@ static PyObject* get_value(PyObject* self, const char* buffer,
             unsigned size;
             int is_raw_bson_document;
             PyObject* raw_bson_document_bytes;
+            PyObject* codec_options_obj;
+
             if (max < 4) {
                 goto invalid;
             }
@@ -1751,10 +1753,13 @@ static PyObject* get_value(PyObject* self, const char* buffer,
 #else
                 raw_bson_document_bytes = PyString_FromStringAndSize(buffer + *position, size);
 #endif
-                /* TODO: get codec options PyObject in here somehow. */
+                codec_options_obj = inflate_codec_options(state, options);
+                if (!codec_options_obj) {
+                    goto invalid;
+                }
                 value = PyObject_CallFunctionObjArgs(
                     options->document_class, raw_bson_document_bytes,
-                    inflate_codec_options(state, options), NULL);
+                    codec_options_obj, NULL);
                 if (!value) {
                     goto invalid;
                 }
@@ -1828,6 +1833,7 @@ static PyObject* get_value(PyObject* self, const char* buffer,
             int is_raw_bson_document;
             PyObject* raw_bson_iterator_bytes_obj;
             PyObject* raw_bson_iterator_func;
+            PyObject* codec_options_obj;
 
             if (max < 4) {
                 goto invalid;
@@ -1858,15 +1864,19 @@ static PyObject* get_value(PyObject* self, const char* buffer,
                 if (!raw_bson_iterator_func) {
                     goto invalid;
                 }
-                /* TODO: get PyObject codec options in here somehow */
+                codec_options_obj = inflate_codec_options(state, options);
+                if (!codec_options_obj) {
+                    Py_DECREF(raw_bson_iterator_func);
+                    goto invalid;
+                }
                 value = PyObject_CallFunctionObjArgs(
                     raw_bson_iterator_func, raw_bson_iterator_bytes_obj,
-                    inflate_codec_options(state, options), NULL);
+                    codec_options_obj, NULL);
                 if (!value) {
                     Py_DECREF(raw_bson_iterator_func);
                     goto invalid;
                 }
-                *position += 4 + size;
+                *position = end + 1;
                 Py_DECREF(raw_bson_iterator_func);
                 break;
             }
