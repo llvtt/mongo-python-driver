@@ -319,14 +319,19 @@ class TestAuthURIOptions(unittest.TestCase):
 
     @client_context.require_auth
     def setUp(self):
-        client = MongoClient(host, port)
+        if client_context.replica_set_name:
+            client = MongoClient(host, port,
+                                 replicaSet=client_context.replica_set_name)
+        else:
+            client = MongoClient(host, port)
         response = client.admin.command('ismaster')
         self.replica_set_name = str(response.get('setName', ''))
-        client_context.client.admin.add_user('admin', 'pass',
-                                             roles=['userAdminAnyDatabase',
-                                                    'dbAdminAnyDatabase',
-                                                    'readWriteAnyDatabase',
-                                                    'clusterAdmin'])
+        client_context.rs_or_standalone_client.admin.add_user(
+            'admin', 'pass',
+            roles=['userAdminAnyDatabase',
+                   'dbAdminAnyDatabase',
+                   'readWriteAnyDatabase',
+                   'clusterAdmin'])
         client.admin.authenticate('admin', 'pass')
         client.pymongo_test.add_user('user', 'pass',
                                      roles=['userAdmin', 'readWrite'])

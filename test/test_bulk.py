@@ -1220,7 +1220,11 @@ class TestBulkAuthorization(BulkTestBase):
     def test_no_remove(self):
         # We test that an authorization failure aborts the batch and is raised
         # as OperationFailure.
-        cli = MongoClient(host, port)
+        if client_context.replica_set_name:
+            cli = MongoClient(host, port,
+                              replicaSet=client_context.replica_set_name)
+        else:
+            cli = MongoClient(host, port)
         db = cli.pymongo_test
         coll = db.test
         db.authenticate('noremove', 'pw')

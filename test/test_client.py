@@ -275,7 +275,8 @@ class TestClient(IntegrationTest):
         self.assertIn(pair, repr(self.client))
 
     def test_getters(self):
-        self.assertEqual(client_context.client.address, (host, port))
+        self.assertEqual(
+            client_context.rs_or_standalone_client.address, (host, port))
         self.assertEqual(client_context.nodes, self.client.nodes)
 
     def test_database_names(self):
@@ -883,7 +884,8 @@ class TestExhaustCursor(IntegrationTest):
         collection.drop()
 
         collection.insert_many([{} for _ in range(200)])
-        self.addCleanup(client_context.client.pymongo_test.test.drop)
+        self.addCleanup(
+            client_context.rs_or_standalone_client.pymongo_test.test.drop)
 
         pool = get_pool(client)
         pool._check_interval_seconds = None  # Never check.

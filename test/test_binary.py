@@ -189,8 +189,9 @@ class TestBinary(unittest.TestCase):
         data = self.java_data
         docs = bson.decode_all(data, CodecOptions(SON, False, JAVA_LEGACY))
 
-        client_context.client.pymongo_test.drop_collection('java_uuid')
-        db = client_context.client.pymongo_test
+        client = client_context.rs_or_standalone_client
+        client.pymongo_test.drop_collection('java_uuid')
+        db = client.pymongo_test
         coll = db.get_collection(
             'java_uuid', CodecOptions(uuid_representation=JAVA_LEGACY))
 
@@ -203,7 +204,7 @@ class TestBinary(unittest.TestCase):
             'java_uuid', CodecOptions(uuid_representation=PYTHON_LEGACY))
         for d in coll.find():
             self.assertNotEqual(d['newguid'], d['newguidstring'])
-        client_context.client.pymongo_test.drop_collection('java_uuid')
+        client.pymongo_test.drop_collection('java_uuid')
 
     def test_legacy_csharp_uuid(self):
         data = self.csharp_data
@@ -259,8 +260,9 @@ class TestBinary(unittest.TestCase):
         data = self.csharp_data
         docs = bson.decode_all(data, CodecOptions(SON, False, CSHARP_LEGACY))
 
-        client_context.client.pymongo_test.drop_collection('csharp_uuid')
-        db = client_context.client.pymongo_test
+        client = client_context.rs_or_standalone_client
+        client.pymongo_test.drop_collection('csharp_uuid')
+        db = client.pymongo_test
         coll = db.get_collection(
             'csharp_uuid', CodecOptions(uuid_representation=CSHARP_LEGACY))
 
@@ -273,7 +275,7 @@ class TestBinary(unittest.TestCase):
             'csharp_uuid', CodecOptions(uuid_representation=PYTHON_LEGACY))
         for d in coll.find():
             self.assertNotEqual(d['newguid'], d['newguidstring'])
-        client_context.client.pymongo_test.drop_collection('csharp_uuid')
+        client.pymongo_test.drop_collection('csharp_uuid')
 
     def test_uri_to_uuid(self):
 
@@ -286,7 +288,7 @@ class TestBinary(unittest.TestCase):
     @client_context.require_connection
     def test_uuid_queries(self):
 
-        db = client_context.client.pymongo_test
+        db = client_context.rs_or_standalone_client.pymongo_test
         coll = db.test
         coll.drop()
 
