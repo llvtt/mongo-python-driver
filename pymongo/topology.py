@@ -139,7 +139,8 @@ class Topology(object):
                 self._pid = os.getpid()
             else:
                 if os.getpid() != self._pid:
-                    warnings.warn(
+                    import logging
+                    logging.error(
                         "MongoClient opened before fork. Create MongoClient "
                         "with connect=False, or create client after forking. "
                         "See PyMongo's documentation for details: http://api."
