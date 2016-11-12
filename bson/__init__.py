@@ -180,7 +180,7 @@ def _get_array(data, position, obj_end, opts, element_name):
                 data, position, obj_end, opts, element_name)
         except KeyError:
             _raise_unknown_type(element_type, element_name)
-        append(value)
+        append(opts.transformer_registry.transform_bson(value))
 
     if position != end + 1:
         raise InvalidBSON('bad array length')
@@ -337,7 +337,10 @@ def _element_to_dict(data, position, obj_end, opts):
                                                         element_name)
     except KeyError:
         _raise_unknown_type(element_type, element_name)
-    return element_name, value, position
+
+    return (element_name,
+            opts.transformer_registry.transform_bson(value),
+            position)
 if _USE_C:
     _element_to_dict = _cbson._element_to_dict
 
@@ -372,8 +375,10 @@ def _bson_to_dict(data, opts):
         raise InvalidBSON("bad eoo")
     try:
         if _raw_document_class(opts.document_class):
-            return opts.document_class(data, opts)
-        return _elements_to_dict(data, 4, obj_size - 1, opts)
+            result = opts.document_class(data, opts)
+        else:
+            result = _elements_to_dict(data, 4, obj_size - 1, opts)
+        return opts.transformer_registry.transform_bson(result)
     except InvalidBSON:
         raise
     except Exception:
@@ -698,7 +703,11 @@ if not PY3:
 def _name_value_to_bson(name, value, check_keys, opts):
     """Encode a single name, value pair."""
 
-    # First see if the type is already cached. KeyError will only ever
+    # First, attempt to transform the value into a BSON type using a custom
+    # BsonTransformer.
+    value = opts.transformer_registry.transform_python(value)
+
+    # Then, see if the type is already cached. KeyError will only ever
     # happen once per subtype.
     try:
         return _ENCODERS[type(value)](name, value, check_keys, opts)
@@ -745,6 +754,7 @@ def _element_to_bson(key, value, check_keys, opts):
 
 def _dict_to_bson(doc, check_keys, opts, top_level=True):
     """Encode a document to BSON."""
+    doc = opts.transformer_registry.transform_python(doc)
     if _raw_document_class(doc):
         return doc.raw
     try:
@@ -838,14 +848,15 @@ def decode_all(data, codec_options=DEFAULT_CODEC_OPTIONS):
             if data[obj_end:position + obj_size] != b"\x00":
                 raise InvalidBSON("bad eoo")
             if use_raw:
-                docs.append(
-                    codec_options.document_class(
-                        data[position:obj_end + 1], codec_options))
+                result = codec_options.document_class(
+                    data[position:obj_end + 1], codec_options)
             else:
-                docs.append(_elements_to_dict(data,
-                                              position + 4,
-                                              obj_end,
-                                              codec_options))
+                result = _elements_to_dict(data,
+                                           position + 4,
+                                           obj_end,
+                                           codec_options)
+            docs.append(
+                codec_options.transformer_registry.transform_bson(result))
             position += obj_size
         return docs
     except InvalidBSON:

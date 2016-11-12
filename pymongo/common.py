@@ -21,7 +21,7 @@ import warnings
 
 from bson.binary import (STANDARD, PYTHON_LEGACY,
                          JAVA_LEGACY, CSHARP_LEGACY)
-from bson.codec_options import CodecOptions
+from bson.codec_options import CodecOptions, TransformerRegistry
 from bson.py3compat import string_type, integer_types, iteritems
 from bson.raw_bson import RawBSONDocument
 from pymongo.auth import MECHANISMS
@@ -395,6 +395,13 @@ def validate_document_class(option, value):
     return value
 
 
+def validate_transformer_registry(option, value):
+    if not isinstance(value, TransformerRegistry):
+        raise TypeError('%s be an instanced of '
+                        'bson.codec_options.TransformerRegistry' % (option,))
+    return value
+
+
 def validate_is_mapping(option, value):
     """Validate the type of method arguments that expect a document."""
     if not isinstance(value, collections.Mapping):
@@ -515,7 +522,8 @@ KW_VALIDATORS = {
     'document_class': validate_document_class,
     'read_preference': validate_read_preference,
     'event_listeners': _validate_event_listeners,
-    'tzinfo': validate_tzinfo
+    'tzinfo': validate_tzinfo,
+    'transformer_registry': validate_transformer_registry
 }
 
 URI_VALIDATORS.update(TIMEOUT_VALIDATORS)

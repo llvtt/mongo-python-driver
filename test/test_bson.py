@@ -905,7 +905,7 @@ class TestCodecOptions(unittest.TestCase):
         r = ("CodecOptions(document_class=dict, tz_aware=False, "
              "uuid_representation=PYTHON_LEGACY, "
              "unicode_decode_error_handler='strict', "
-             "tzinfo=None)")
+             "tzinfo=None, transformer_registry=TransformerRegistry())")
         self.assertEqual(r, repr(CodecOptions()))
 
     def test_decode_all_defaults(self):

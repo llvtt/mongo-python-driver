@@ -32,10 +32,68 @@ def _raw_document_class(document_class):
     return marker == _RAW_BSON_DOCUMENT_MARKER
 
 
+class BsonTransformer(object):
+    def bson_type(self):
+        """The BSON library type this BsonTransformer transforms into Python."""
+        pass
+
+    def python_type(self):
+        """The type this BsonTransformer transforms into a BSON library type."""
+        pass
+
+    def transform_python(self, value):
+        """Transform the given Python value into a BSON-serializable type."""
+        pass
+
+    def transform_bson(self, bson):
+        """Transform the given BSON library value into another Python object."""
+        pass
+
+
+class TransformerRegistry(object):
+    def __init__(self, *transformers):
+        """Create a new TransformerRegistry."""
+        self._python_transformers = {}
+        self._bson_transformers = {}
+        for transformer in transformers:
+            if not isinstance(transformer, BsonTransformer):
+                raise TypeError(
+                    '"transformers" must be an iterable of BsonTransformers: %r'
+                    % (transformer,))
+            bson_type = transformer.bson_type()
+            if bson_type:
+                self._bson_transformers[bson_type] = transformer
+            python_type = transformer.python_type()
+            if python_type:
+                self._python_transformers[python_type] = transformer
+
+    def transform_python(self, value):
+        try:
+            transformer = self._python_transformers[type(value)]
+        except KeyError:
+            return value
+        return transformer.transform_python(value)
+
+    def transform_bson(self, value):
+        try:
+            transformer = self._bson_transformers[type(value)]
+        except KeyError:
+            return value
+        return transformer.transform_bson(value)
+
+    def __repr__(self):
+        reprs = []
+        for typ in self._python_transformers:
+            reprs.append(repr(self._python_transformers[typ]))
+        for typ in self._bson_transformers:
+            reprs.append(repr(self._bson_transformers[typ]))
+        return 'TransformerRegistry(%s)' % ', '.join(reprs)
+
+
 _options_base = namedtuple(
     'CodecOptions',
     ('document_class', 'tz_aware', 'uuid_representation',
-     'unicode_decode_error_handler', 'tzinfo'))
+     'unicode_decode_error_handler', 'tzinfo', 'transformer_registry'))
 
 
 class CodecOptions(_options_base):
@@ -57,6 +115,8 @@ class CodecOptions(_options_base):
       - `tzinfo`: A :class:`~datetime.tzinfo` subclass that specifies the
         timezone to/from which :class:`~datetime.datetime` objects should be
         encoded/decoded.
+      - `transformer_registry`: An instance of
+        :class:`~bson.codec_options.TransformerRegistry`.
 
     .. warning:: Care must be taken when changing
        `unicode_decode_error_handler` from its default value ('strict').
@@ -68,7 +128,7 @@ class CodecOptions(_options_base):
     def __new__(cls, document_class=dict,
                 tz_aware=False, uuid_representation=PYTHON_LEGACY,
                 unicode_decode_error_handler="strict",
-                tzinfo=None):
+                tzinfo=None, transformer_registry=None):
         if not (issubclass(document_class, MutableMapping) or
                 _raw_document_class(document_class)):
             raise TypeError("document_class must be dict, bson.son.SON, "
@@ -90,9 +150,16 @@ class CodecOptions(_options_base):
                 raise ValueError(
                     "cannot specify tzinfo without also setting tz_aware=True")
 
+        if transformer_registry is not None:
+            if not isinstance(transformer_registry, TransformerRegistry):
+                raise TypeError(
+                    'transformer_registry must be an instance '
+                    'of TransformerRegistry.')
+
         return tuple.__new__(
             cls, (document_class, tz_aware, uuid_representation,
-                  unicode_decode_error_handler, tzinfo))
+                  unicode_decode_error_handler, tzinfo,
+                  transformer_registry or TransformerRegistry()))
 
     def _arguments_repr(self):
         """Representation of the arguments used to create this object."""
@@ -104,9 +171,11 @@ class CodecOptions(_options_base):
                                                       self.uuid_representation)
 
         return ('document_class=%s, tz_aware=%r, uuid_representation='
-                '%s, unicode_decode_error_handler=%r, tzinfo=%r' %
+                '%s, unicode_decode_error_handler=%r, tzinfo=%r, '
+                'transformer_registry=%r' %
                 (document_class_repr, self.tz_aware, uuid_rep_repr,
-                 self.unicode_decode_error_handler, self.tzinfo))
+                 self.unicode_decode_error_handler, self.tzinfo,
+                 self.transformer_registry))
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self._arguments_repr())
@@ -127,4 +196,7 @@ def _parse_codec_options(options):
         unicode_decode_error_handler=options.get(
             'unicode_decode_error_handler',
             DEFAULT_CODEC_OPTIONS.unicode_decode_error_handler),
-        tzinfo=options.get('tzinfo', DEFAULT_CODEC_OPTIONS.tzinfo))
+        tzinfo=options.get('tzinfo', DEFAULT_CODEC_OPTIONS.tzinfo),
+        transformer_registry=options.get(
+            'transformer_registry', DEFAULT_CODEC_OPTIONS.transformer_registry)
+    )
